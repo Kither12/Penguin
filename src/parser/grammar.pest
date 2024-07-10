@@ -1,0 +1,34 @@
+ws = _{ " " | "\t" }
+COMMENT    = _{ "#" }
+
+integer   = { ASCII_DIGIT+ }
+add_op = {notation ~ "+"}
+sub_op = {notation ~ "-"}
+mul_op = {notation ~ "*"}
+div_op = {notation ~ "/"}
+operator  = _{ add_op | sub_op | mul_op | div_op }
+terminate = _{ ";" }
+
+expr = {ws* ~ atom ~ ws* ~ (operator ~ ws* ~ atom ~ ws*)*}
+atom = _{integer | ("(" ~ ws* ~ expr ~ ws* ~ ")")}
+
+
+notation = _{ "`" ~ chess_notation ~ "`" }
+
+code = { expr ~ ws* ~ terminate }
+
+chess_file = { 'a'..'h' }
+chess_rank = { '1'..'8' }
+
+target_cell          = { chess_file ~ chess_rank }
+chess_piece          = { ("N" | "B" | "R" | "Q" | "K") }
+chess_piece_conflict = { chess_piece ~ ((chess_file ~ chess_rank) | chess_file | chess_rank) }
+chess_piece_move     = { (chess_piece_conflict ~ capture? ~ target_cell) | (chess_piece ~ capture? ~ target_cell) }
+
+pawn_move      = { pawn_capture? ~ target_cell ~ promotion? }
+promotion      = { chess_piece }
+castle         = { "0-0" | "0-0-0" }
+check          =  { ("+" | "#") }
+capture        =  { "x" }
+pawn_capture   = { chess_file ~ "x" }
+chess_notation = { (chess_piece_move | pawn_move | castle) ~ check? }
