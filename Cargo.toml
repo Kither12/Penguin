@@ -3,6 +3,13 @@ name = "chess-lang"
 version = "0.1.0"
 edition = "2021"
 
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+
+[[bench]]
+name = "benchmark"
+harness = false
+
 [dependencies]
 pest = "2.7.11"
 pest_derive = "2.7.11"

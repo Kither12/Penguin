@@ -60,7 +60,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
         })
         .parse(pairs)
 }
-fn parse_ast(line: &String) -> Result<Box<ASTNode>> {
+pub fn parse_ast(line: &String) -> Result<Box<ASTNode>> {
     let pair = CParser::parse(Rule::code, line)
         .context("Failed to parser")?
         .next()
