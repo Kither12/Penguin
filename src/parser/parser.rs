@@ -5,7 +5,7 @@ use pest::{
     Parser,
 };
 use pest_derive::Parser;
-use std::{str::FromStr, sync::OnceLock};
+use std::{path::Prefix, rc::Rc, str::FromStr, sync::OnceLock};
 
 use super::{
     ast::ASTNode,
@@ -27,6 +27,7 @@ fn pratt_parser() -> &'static PrattParser<Rule> {
         PrattParser::new()
             .op(Op::infix(Rule::add_op, Left) | Op::infix(Rule::sub_op, Left))
             .op(Op::infix(Rule::mul_op, Left) | Op::infix(Rule::div_op, Left))
+            .op(Op::prefix(Rule::pos_op) | Op::prefix(Rule::neg_op))
     })
 }
 
@@ -58,9 +59,25 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
                 rhs: Box::new(rhs?),
             })
         })
+        .map_prefix(|op, lhs| {
+            let op_node = Operation {
+                op_type: match op.as_rule() {
+                    Rule::pos_op => OpType::Add,
+                    Rule::neg_op => OpType::Sub,
+                    rule => unreachable!("Expr: Unexpected rule: {:?}", rule),
+                },
+                chess_notation: ChessNotation::new(
+                    op.into_inner().next().unwrap().as_str().to_owned(),
+                ),
+            };
+            Ok(Expression::Unary {
+                lhs: Box::new(lhs?),
+                op: op_node,
+            })
+        })
         .parse(pairs)
 }
-pub fn parse_ast(line: &String) -> Result<Box<ASTNode>> {
+pub fn parse_ast(line: &str) -> Result<Box<ASTNode>> {
     let pair = CParser::parse(Rule::code, line)
         .context("Failed to parser")?
         .next()
@@ -80,12 +97,12 @@ mod tests {
 
     #[test]
     fn test_parse_expression() {
-        let ast = parse_ast(&String::from("2 `e4`+ (2 `e5`+ 2) `e4`* 4;")).unwrap();
+        let ast = parse_ast("2 `e4`+ `d6`- `d6`- `d6`-(2 `e5`+ 2) `e4`* 4;").unwrap();
         println!("{:#?}", ast.as_ref());
     }
     #[test]
     fn test_evaluate_expression() {
-        let ast = parse_ast(&String::from("2 `e4`+ (2 `e5`+ 2) `e4`* 4;")).unwrap();
+        let ast = parse_ast("2 `e4`+ `d6`- `d6`- `d6`-(2 `e5`+ 2) `e4`* 4;").unwrap();
         if let ASTNode::Expr(expr) = ast.as_ref() {
             let eval = expr.evaluation().unwrap();
             println!("{:#?}", eval)

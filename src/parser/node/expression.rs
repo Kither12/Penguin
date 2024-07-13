@@ -38,11 +38,14 @@ impl Expression {
     pub fn evaluation(&self) -> Result<Box<dyn Primitive>> {
         match self {
             Expression::Literal { lhs } => Ok(lhs.clone_box()),
-            Expression::Unary { lhs, op } => unimplemented!(),
+            Expression::Unary { lhs, op } => {
+                let lhs_val: Box<dyn Primitive> = lhs.evaluation()?;
+                Ok(lhs_val.evaluate_unary(op)?)
+            }
             Expression::Binary { lhs, op, rhs } => {
-                let mut lhs_val: Box<dyn Primitive> = lhs.evaluation()?;
-                let mut rhs_val: Box<dyn Primitive> = rhs.evaluation()?;
-                Ok(lhs_val.evaluate(&rhs_val, op)?)
+                let lhs_val: Box<dyn Primitive> = lhs.evaluation()?;
+                let rhs_val: Box<dyn Primitive> = rhs.evaluation()?;
+                Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
             }
         }
     }

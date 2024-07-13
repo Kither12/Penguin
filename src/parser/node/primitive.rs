@@ -9,7 +9,14 @@ use std::{
 use super::expression::{OpType, Operation};
 
 pub trait Primitive {
-    fn evaluate(&self, other: &Box<dyn Primitive>, op: &Operation) -> Result<Box<dyn Primitive>> {
+    fn evaluate_primary(
+        &self,
+        other: &Box<dyn Primitive>,
+        op: &Operation,
+    ) -> Result<Box<dyn Primitive>> {
+        Err(anyhow!("Unvalid operation"))
+    }
+    fn evaluate_unary(&self, op: &Operation) -> Result<Box<dyn Primitive>> {
         Err(anyhow!("Unvalid operation"))
     }
     fn clone_box(&self) -> Box<dyn Primitive>;
@@ -43,7 +50,11 @@ impl Primitive for Integer {
     fn debug(&self, f: &mut Formatter) -> core::fmt::Result {
         write!(f, "{}", self.value)
     }
-    fn evaluate(&self, other: &Box<dyn Primitive>, op: &Operation) -> Result<Box<dyn Primitive>> {
+    fn evaluate_primary(
+        &self,
+        other: &Box<dyn Primitive>,
+        op: &Operation,
+    ) -> Result<Box<dyn Primitive>> {
         match op.op_type {
             OpType::Add => Ok(Box::new(Integer {
                 value: self.value + other.as_int()?.value,
@@ -57,6 +68,13 @@ impl Primitive for Integer {
             OpType::Div => Ok(Box::new(Integer {
                 value: self.value / other.as_int()?.value,
             })),
+            _ => Err(anyhow!("Unvalid operation")),
+        }
+    }
+    fn evaluate_unary(&self, op: &Operation) -> Result<Box<dyn Primitive>> {
+        match op.op_type {
+            OpType::Add => Ok(Box::new(Integer { value: self.value })),
+            OpType::Sub => Ok(Box::new(Integer { value: -self.value })),
             _ => Err(anyhow!("Unvalid operation")),
         }
     }
