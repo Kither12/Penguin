@@ -1,22 +1,18 @@
 use anyhow::{anyhow, Result};
 use core::fmt::Debug;
-use std::{
-    any::{Any, TypeId},
-    fmt::Formatter,
-    str::FromStr,
-};
+use std::{fmt::Formatter, str::FromStr};
 
-use super::expression::{OpType, Operation};
+use super::expression::OpType;
 
 pub trait Primitive {
     fn evaluate_primary(
         &self,
         other: &Box<dyn Primitive>,
-        op: &Operation,
+        op: &OpType,
     ) -> Result<Box<dyn Primitive>> {
         Err(anyhow!("Unvalid operation"))
     }
-    fn evaluate_unary(&self, op: &Operation) -> Result<Box<dyn Primitive>> {
+    fn evaluate_unary(&self, op: &OpType) -> Result<Box<dyn Primitive>> {
         Err(anyhow!("Unvalid operation"))
     }
     fn clone_box(&self) -> Box<dyn Primitive>;
@@ -30,6 +26,12 @@ impl Debug for dyn Primitive {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
         self.debug(f)
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum PrimitiveType {
+    Integer,
+    Boolean,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -53,9 +55,9 @@ impl Primitive for Integer {
     fn evaluate_primary(
         &self,
         other: &Box<dyn Primitive>,
-        op: &Operation,
+        op: &OpType,
     ) -> Result<Box<dyn Primitive>> {
-        match op.op_type {
+        match op {
             OpType::Add => Ok(Box::new(Integer {
                 value: self.value + other.as_int()?.value,
             })),
@@ -71,8 +73,8 @@ impl Primitive for Integer {
             _ => Err(anyhow!("Unvalid operation")),
         }
     }
-    fn evaluate_unary(&self, op: &Operation) -> Result<Box<dyn Primitive>> {
-        match op.op_type {
+    fn evaluate_unary(&self, op: &OpType) -> Result<Box<dyn Primitive>> {
+        match op {
             OpType::Add => Ok(Box::new(Integer { value: self.value })),
             OpType::Sub => Ok(Box::new(Integer { value: -self.value })),
             _ => Err(anyhow!("Unvalid operation")),

@@ -1,9 +1,7 @@
-use std::{borrow::Borrow, str::FromStr};
-
-use crate::parser::ast::ASTNode;
+use crate::environment::environment::Environment;
 use anyhow::Result;
 
-use super::{chess_notation::ChessNotation, primitive::Primitive};
+use super::primitive::Primitive;
 
 #[derive(Debug)]
 pub enum OpType {
@@ -14,37 +12,44 @@ pub enum OpType {
 }
 
 #[derive(Debug)]
-pub struct Operation {
-    pub op_type: OpType,
-    pub chess_notation: ChessNotation,
+pub enum ExprAtom<'a> {
+    Primitive(Box<dyn Primitive>),
+    Identifier(&'a str),
 }
+
 #[derive(Debug)]
-pub enum Expression {
+pub enum Expression<'a> {
     Literal {
-        lhs: Box<dyn Primitive>,
+        lhs: ExprAtom<'a>,
     },
     Unary {
-        lhs: Box<Expression>,
-        op: Operation,
+        lhs: Box<Expression<'a>>,
+        op: OpType,
     },
     Binary {
-        lhs: Box<Expression>,
-        op: Operation,
-        rhs: Box<Expression>,
+        lhs: Box<Expression<'a>>,
+        op: OpType,
+        rhs: Box<Expression<'a>>,
     },
 }
 
-impl Expression {
-    pub fn evaluation(&self) -> Result<Box<dyn Primitive>> {
+impl<'a> Expression<'a> {
+    pub fn evaluation(&self, environment: &Environment) -> Result<Box<dyn Primitive>> {
         match self {
-            Expression::Literal { lhs } => Ok(lhs.clone_box()),
+            Expression::Literal { lhs } => match lhs {
+                ExprAtom::Primitive(val) => Ok(val.clone_box()),
+                ExprAtom::Identifier(val) => {
+                    let (lhs_val, _) = environment.get_var(val)?;
+                    Ok(lhs_val.clone_box())
+                }
+            },
             Expression::Unary { lhs, op } => {
-                let lhs_val: Box<dyn Primitive> = lhs.evaluation()?;
+                let lhs_val: Box<dyn Primitive> = lhs.evaluation(environment)?;
                 Ok(lhs_val.evaluate_unary(op)?)
             }
             Expression::Binary { lhs, op, rhs } => {
-                let lhs_val: Box<dyn Primitive> = lhs.evaluation()?;
-                let rhs_val: Box<dyn Primitive> = rhs.evaluation()?;
+                let lhs_val: Box<dyn Primitive> = lhs.evaluation(environment)?;
+                let rhs_val: Box<dyn Primitive> = rhs.evaluation(environment)?;
                 Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
             }
         }
