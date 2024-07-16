@@ -3,8 +3,6 @@ use pest::{iterators::Pairs, pratt_parser::PrattParser, Parser};
 use pest_derive::Parser;
 use std::{borrow::BorrowMut, str::FromStr, sync::OnceLock};
 
-use crate::parser::node::primitive::PrimitiveType;
-
 use super::{
     ast::ASTNode,
     node::{
@@ -70,13 +68,9 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
         .parse(pairs)
 }
 pub fn parse_declaration<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Declaration<'a>> {
-    let primitive_type = match pairs.next().unwrap().as_rule() {
-        Rule::int_type => PrimitiveType::Integer,
-        rule => unreachable!("Expr: Unexpected rule: {:?}", rule),
-    };
     let identifier = pairs.next().unwrap().as_str();
     let expr = parse_expr(pairs.next().unwrap().into_inner())?;
-    Ok(Declaration::new(identifier, primitive_type, expr))
+    Ok(Declaration::new(identifier, expr))
 }
 
 pub fn parse_assignment<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Assignment<'a>> {

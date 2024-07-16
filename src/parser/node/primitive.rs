@@ -29,12 +29,6 @@ impl Debug for dyn Primitive {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum PrimitiveType {
-    Integer,
-    Boolean,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub struct Integer {
     value: i128,
 }

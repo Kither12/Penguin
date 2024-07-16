@@ -39,7 +39,7 @@ impl<'a> Expression<'a> {
             Expression::Literal { lhs } => match lhs {
                 ExprAtom::Primitive(val) => Ok(val.clone_box()),
                 ExprAtom::Identifier(val) => {
-                    let (lhs_val, _) = environment.get_var(val)?;
+                    let lhs_val = environment.get_var(val)?;
                     Ok(lhs_val.clone_box())
                 }
             },

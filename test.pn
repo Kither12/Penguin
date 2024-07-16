@@ -1,2 +1,2 @@
-gimme<int> a = 2 + 2;
+gimme a = 2 + 2;
 2 + 2 * a - 3;

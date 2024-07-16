@@ -16,12 +16,9 @@ expr    =  { ws* ~ atom ~ ws* ~ (operator ~ ws* ~ atom ~ ws*)* }
 primary = _{ integer | identifier | ("(" ~ ws* ~ expr ~ ws* ~ ")") }
 atom    = _{ (unary_operator ~ ws*)* ~ primary }
 
-int_type =  { "int" }
-type     = _{ int_type }
-
 identifier = { !keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
-declaration = { "gimme" ~ "<" ~ type ~ ">" ~ ws* ~ identifier ~ ws* ~ "=" ~ ws* ~ expr }
+declaration = { "gimme" ~ ws* ~ identifier ~ ws* ~ "=" ~ ws* ~ expr }
 assignment  = { identifier ~ ws* ~ "=" ~ ws* ~ expr }
 
 notation = _{ "`" ~ chess_notation ~ "`" }
@@ -44,4 +41,4 @@ capture        = { "x" }
 pawn_capture   = { chess_file ~ "x" }
 chess_notation = { (chess_piece_move | pawn_move | castle) ~ check? }
 
-keyword = _{ "gimme" | "int" }
+keyword = _{ "gimme" }
