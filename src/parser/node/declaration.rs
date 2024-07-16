@@ -19,7 +19,7 @@ impl<'a> Assignment<'a> {
     }
     pub fn execute(&self, mut environment: Environment<'a>) -> Result<Environment> {
         let expr_val = self.expr.evaluation(&environment)?;
-        environment = environment.subscribe(self.identifier, expr_val)?;
+        environment = environment.assign_var(self.identifier, expr_val)?;
         Ok(environment)
     }
 }

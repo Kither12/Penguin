@@ -17,7 +17,9 @@ pub fn run_code(code: &str) -> Result<()> {
                 ASTNode::Declaration(v) => {
                     environment = v.execute(environment)?;
                 }
-                ASTNode::Assignment(v) => {}
+                ASTNode::Assignment(v) => {
+                    environment = v.execute(environment)?;
+                }
                 _ => unreachable!(),
             }
         }

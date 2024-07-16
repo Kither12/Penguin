@@ -19,16 +19,16 @@ impl<'a> Environment<'a> {
             self.variable_mp.insert(identifier, val);
             return Ok(self);
         }
-        let val = self.variable_mp.get_mut(identifier).unwrap();
-        let (_, depth) = val.last().unwrap();
+        let var_stack = self.variable_mp.get_mut(identifier).unwrap();
+        let (_, depth) = var_stack.last().unwrap();
         if *depth == self.scope_depth {
             return Err(anyhow!(
-                "The variable {} has already declared in the current scope",
+                "{} has already been declared in the current scope",
                 identifier
             ));
         }
 
-        val.push((value, self.scope_depth));
+        var_stack.push((value, self.scope_depth));
 
         Ok(self)
     }
@@ -37,5 +37,14 @@ impl<'a> Environment<'a> {
             Some((val, _)) => Ok(val),
             None => Err(anyhow!("{} hasn't been declared", identifier))?,
         }
+    }
+    pub fn assign_var(mut self, identifier: &'a str, value: Box<dyn Primitive>) -> Result<Self> {
+        if !self.variable_mp.contains_key(identifier) {
+            return Err(anyhow!("{} hasn't been declared", identifier));
+        }
+        let var_stack = self.variable_mp.get_mut(identifier).unwrap();
+        let (val, _) = var_stack.last_mut().unwrap();
+        *val = value;
+        Ok(self)
     }
 }

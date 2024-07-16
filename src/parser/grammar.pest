@@ -23,7 +23,7 @@ assignment  = { identifier ~ ws* ~ "=" ~ ws* ~ expr }
 
 notation = _{ "`" ~ chess_notation ~ "`" }
 
-code = { (( assignment | declaration | expr ) ~ ws* ~ terminate)* }
+code = { (( assignment | declaration | expr ) ~ ws* ~ terminate ~ ws*)* }
 
 chess_file = { 'a'..'h' }
 chess_rank = { '1'..'8' }
