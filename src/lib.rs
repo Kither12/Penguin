@@ -24,6 +24,5 @@ pub fn run_code(code: &str) -> Result<()> {
             }
         }
     }
-
     Ok(())
 }

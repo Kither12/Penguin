@@ -1,6 +1,6 @@
 use anyhow::{Ok, Result};
-use chess_lang::run_code;
 use clap::Parser;
+use penguin::run_code;
 use std::fs;
 
 #[derive(Parser, Debug)]
