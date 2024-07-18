@@ -21,24 +21,9 @@ identifier = { !keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 declaration = { "gimme" ~ ws* ~ identifier ~ ws* ~ "=" ~ ws* ~ expr }
 assignment  = { identifier ~ ws* ~ "=" ~ ws* ~ expr }
 
-notation = _{ "`" ~ chess_notation ~ "`" }
+line = _{((assignment | declaration | expr) ~ ws* ~ terminate) | scope }
+scope = {"{" ~ (ws* ~ line ~ ws *)* ~ "}" }
+code = { (line ~ ws*)* }
 
-code = { (( assignment | declaration | expr ) ~ ws* ~ terminate ~ ws*)* }
-
-chess_file = { 'a'..'h' }
-chess_rank = { '1'..'8' }
-
-target_cell          = { chess_file ~ chess_rank }
-chess_piece          = { ("N" | "B" | "R" | "Q" | "K") }
-chess_piece_conflict = { chess_piece ~ ((chess_file ~ chess_rank) | chess_file | chess_rank) }
-chess_piece_move     = { (chess_piece_conflict ~ capture? ~ target_cell) | (chess_piece ~ capture? ~ target_cell) }
-
-pawn_move      = { pawn_capture? ~ target_cell ~ promotion? }
-promotion      = { chess_piece }
-castle         = { "0-0" | "0-0-0" }
-check          = { ("+" | "#") }
-capture        = { "x" }
-pawn_capture   = { chess_file ~ "x" }
-chess_notation = { (chess_piece_move | pawn_move | castle) ~ check? }
 
 keyword = _{ "gimme" }

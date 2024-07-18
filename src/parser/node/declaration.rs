@@ -1,4 +1,4 @@
-use anyhow::{Ok, Result};
+use anyhow::{Context, Ok, Result};
 
 use crate::environment::environment::Environment;
 
@@ -19,7 +19,9 @@ impl<'a> Assignment<'a> {
     }
     pub fn execute(&self, mut environment: Environment<'a>) -> Result<Environment> {
         let expr_val = self.expr.evaluation(&environment)?;
-        environment = environment.assign_var(self.identifier, expr_val)?;
+        environment = environment
+            .assign_var(self.identifier, expr_val)
+            .context(format!("Failed to assign {}", self.identifier))?;
         Ok(environment)
     }
 }

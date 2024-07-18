@@ -9,6 +9,7 @@ use super::{
         declaration::{Assignment, Declaration},
         expression::{ExprAtom, Expression, OpType},
         primitive::Integer,
+        scope::Scope,
     },
 };
 
@@ -78,14 +79,8 @@ pub fn parse_assignment<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Assignment<'a
     let expr = parse_expr(pairs.next().unwrap().into_inner())?;
     Ok(Assignment::new(identifier, expr))
 }
-
-pub fn parse_ast(code: &str) -> Result<Box<ASTNode>> {
-    let pairs = CParser::parse(Rule::code, code)
-        .context("Failed to parser")?
-        .next()
-        .unwrap()
-        .into_inner();
-    Ok(Box::new(ASTNode::Root(
+pub fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
+    Ok(Scope::new(
         pairs
             .map(|pair| match pair.as_rule() {
                 Rule::expr => {
@@ -95,8 +90,34 @@ pub fn parse_ast(code: &str) -> Result<Box<ASTNode>> {
                     .and_then(|v| Ok(Box::new(ASTNode::Assignment(v)))),
                 Rule::declaration => parse_declaration(pair.into_inner().borrow_mut())
                     .and_then(|v| Ok(Box::new(ASTNode::Declaration(v)))),
+                Rule::scope => parse_scope(pair.into_inner().borrow_mut())
+                    .and_then(|v| Ok(Box::new(ASTNode::Scope(v)))),
                 rule => unreachable!("Unexpected rule: {:?}", rule),
             })
             .collect::<Result<Vec<Box<ASTNode>>>>()?,
-    )))
+    ))
+}
+
+pub fn parse_ast(code: &str) -> Result<Box<ASTNode>> {
+    let pairs = CParser::parse(Rule::code, code)
+        .context("Failed to parser")?
+        .next()
+        .unwrap()
+        .into_inner();
+    Ok(Box::new(ASTNode::Scope(Scope::new(
+        pairs
+            .map(|pair| match pair.as_rule() {
+                Rule::expr => {
+                    parse_expr(pair.into_inner()).and_then(|v| Ok(Box::new(ASTNode::Expr(v))))
+                }
+                Rule::assignment => parse_assignment(pair.into_inner().borrow_mut())
+                    .and_then(|v| Ok(Box::new(ASTNode::Assignment(v)))),
+                Rule::declaration => parse_declaration(pair.into_inner().borrow_mut())
+                    .and_then(|v| Ok(Box::new(ASTNode::Declaration(v)))),
+                Rule::scope => parse_scope(pair.into_inner().borrow_mut())
+                    .and_then(|v| Ok(Box::new(ASTNode::Scope(v)))),
+                rule => unreachable!("Unexpected rule: {:?}", rule),
+            })
+            .collect::<Result<Vec<Box<ASTNode>>>>()?,
+    ))))
 }

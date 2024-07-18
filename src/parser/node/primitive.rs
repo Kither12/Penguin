@@ -17,7 +17,7 @@ pub trait Primitive {
     }
     fn clone_box(&self) -> Box<dyn Primitive>;
     fn as_int(&self) -> Result<Integer> {
-        Err(anyhow!("Cannot cast to integer"))
+        Err(anyhow!("Failed to cast to integer"))
     }
     fn debug(&self, f: &mut Formatter) -> core::fmt::Result;
 }

@@ -1,15 +1,18 @@
-use anyhow::{Context, Ok, Result};
-use environment::environment::Environment;
-use parser::{ast::ASTNode, parser::parse_ast};
+use crate::{environment::environment::Environment, parser::ast::ASTNode};
+use anyhow::{Context, Result};
 
-pub mod environment;
-pub mod parser;
+#[derive(Debug)]
+pub struct Scope<'a> {
+    pub code: Vec<Box<ASTNode<'a>>>,
+}
 
-pub fn run_code(code: &str) -> Result<()> {
-    let ast_root = parse_ast(code)?;
-    let mut environment = Environment::default();
-    if let ASTNode::Scope(v) = ast_root.as_ref() {
-        for node in v.code.iter() {
+impl<'a> Scope<'a> {
+    pub fn new(code: Vec<Box<ASTNode<'a>>>) -> Self {
+        Scope { code }
+    }
+    pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment> {
+        environment = environment.open_scope();
+        for node in self.code.iter() {
             match node.as_ref() {
                 ASTNode::Expr(v) => {
                     println!(
@@ -26,16 +29,17 @@ pub fn run_code(code: &str) -> Result<()> {
                 ASTNode::Assignment(v) => {
                     environment = v
                         .execute(environment)
-                        .context("Error found when try to run declaration")?;
+                        .context("Error found when try to run assignment")?;
                 }
                 ASTNode::Scope(v) => {
                     environment = v
                         .execute(environment)
-                        .context("Error found when try to run declaration")?;
+                        .context("Error found when try to run scope")?;
                 }
                 _ => unreachable!(),
             }
         }
+        environment = environment.close_scope();
+        Ok(environment)
     }
-    Ok(())
 }
