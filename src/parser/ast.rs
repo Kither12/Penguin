@@ -1,4 +1,5 @@
 use super::node::{
+    conditional::IfElse,
     declaration::{Assignment, Declaration},
     expression::Expression,
     scope::Scope,
@@ -10,4 +11,5 @@ pub enum ASTNode<'a> {
     Expr(Expression<'a>),
     Declaration(Declaration<'a>),
     Assignment(Assignment<'a>),
+    IfElse(IfElse<'a>),
 }

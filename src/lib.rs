@@ -33,7 +33,11 @@ pub fn run_code(code: &str) -> Result<()> {
                         .execute(environment)
                         .context("Error found when try to run declaration")?;
                 }
-                _ => unreachable!(),
+                ASTNode::IfElse(v) => {
+                    environment = v
+                        .execute(environment)
+                        .context("Error found when try to run declaration")?;
+                }
             }
         }
     }

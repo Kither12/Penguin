@@ -9,6 +9,15 @@ pub enum OpType {
     Sub,
     Mul,
     Div,
+    And,
+    Or,
+    Opp,
+    Gt,
+    Lt,
+    Gte,
+    Lte,
+    Eq,
+    Neq,
 }
 
 #[derive(Debug)]
@@ -44,14 +53,32 @@ impl<'a> Expression<'a> {
                 }
             },
             Expression::Unary { lhs, op } => {
-                let lhs_val: Box<dyn Primitive> = lhs.evaluation(environment)?;
+                let lhs_val = lhs.evaluation(environment)?;
                 Ok(lhs_val.evaluate_unary(op)?)
             }
-            Expression::Binary { lhs, op, rhs } => {
-                let lhs_val: Box<dyn Primitive> = lhs.evaluation(environment)?;
-                let rhs_val: Box<dyn Primitive> = rhs.evaluation(environment)?;
-                Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
-            }
+            Expression::Binary { lhs, op, rhs } => match op {
+                OpType::And => {
+                    let lhs_val = lhs.evaluation(environment)?;
+                    if lhs_val.as_bool() == false {
+                        return Ok(lhs_val.clone_box());
+                    }
+                    let rhs_val = rhs.evaluation(environment)?;
+                    Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
+                }
+                OpType::Or => {
+                    let lhs_val = lhs.evaluation(environment)?;
+                    if lhs_val.as_bool() == true {
+                        return Ok(lhs_val.clone_box());
+                    }
+                    let rhs_val = rhs.evaluation(environment)?;
+                    Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
+                }
+                _ => {
+                    let lhs_val = lhs.evaluation(environment)?;
+                    let rhs_val = rhs.evaluation(environment)?;
+                    Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
+                }
+            },
         }
     }
 }
