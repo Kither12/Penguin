@@ -2,6 +2,7 @@ use super::node::{
     conditional::IfElse,
     declaration::{Assignment, Declaration},
     expression::Expression,
+    looping::WhileLoop,
     scope::Scope,
 };
 
@@ -12,4 +13,5 @@ pub enum ASTNode<'a> {
     Declaration(Declaration<'a>),
     Assignment(Assignment<'a>),
     IfElse(IfElse<'a>),
+    WhileLoop(WhileLoop<'a>),
 }

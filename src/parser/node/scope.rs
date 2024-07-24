@@ -41,6 +41,11 @@ impl<'a> Scope<'a> {
                         .execute(environment)
                         .context("Error found when try to run declaration")?;
                 }
+                ASTNode::WhileLoop(v) => {
+                    environment = v
+                        .execute(environment)
+                        .context("Error found when try to run declaration")?;
+                }
             }
         }
         environment = environment.close_scope();

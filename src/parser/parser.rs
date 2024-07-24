@@ -15,6 +15,7 @@ use super::{
         conditional::IfElse,
         declaration::{Assignment, Declaration},
         expression::{ExprAtom, Expression, OpType},
+        looping::WhileLoop,
         primitive::Integer,
         scope::Scope,
     },
@@ -145,6 +146,12 @@ pub fn parse_if_else<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<IfElse<'a>> {
     Ok(IfElse::new(if_clause, else_clause))
 }
 
+pub fn parse_while_loop<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<WhileLoop<'a>> {
+    let expr_parsed = parse_expr(pairs.next().unwrap().into_inner())?;
+    let scope_parsed = parse_scope(pairs.next().unwrap().into_inner().borrow_mut())?;
+    Ok(WhileLoop::new(expr_parsed, scope_parsed))
+}
+
 pub fn parse_ast(code: &str) -> Result<Box<ASTNode>> {
     let pairs = CParser::parse(Rule::code, code)
         .context("Failed to parser")?
@@ -165,6 +172,8 @@ pub fn parse_ast(code: &str) -> Result<Box<ASTNode>> {
                     .and_then(|v| Ok(Box::new(ASTNode::Scope(v)))),
                 Rule::ifelse => parse_if_else(pair.into_inner().borrow_mut())
                     .and_then(|v| Ok(Box::new(ASTNode::IfElse(v)))),
+                Rule::while_loop => parse_while_loop(pair.into_inner().borrow_mut())
+                    .and_then(|v| Ok(Box::new(ASTNode::WhileLoop(v)))),
                 rule => unreachable!("Unexpected rule: {:?}", rule),
             })
             .collect::<Result<Vec<Box<ASTNode>>>>()?,

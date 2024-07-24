@@ -1,15 +1,5 @@
-gimme a = 3;
-if a == 2{
-    a;
-}
-elif a == 3{
-    if 2 != 2{
-        a;
-    }
-    else{
-        4;
-    }
-}
-else{
-    3 + 3;
+gimme i = 0;
+while i < 10{
+    i;
+    i = i + 1;
 }

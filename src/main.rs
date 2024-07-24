@@ -6,8 +6,6 @@ use std::fs;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// program read from script file
-    #[arg(short, long, value_name = "FILE")]
     file: String,
 }
 
