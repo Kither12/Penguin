@@ -30,7 +30,9 @@ fn pratt_parser() -> &'static PrattParser<Rule> {
                 | Op::infix(Rule::lte_op, Left)
                 | Op::infix(Rule::gte_op, Left))
             .op(Op::infix(Rule::add_op, Left) | Op::infix(Rule::sub_op, Left))
-            .op(Op::infix(Rule::mul_op, Left) | Op::infix(Rule::div_op, Left))
+            .op(Op::infix(Rule::mul_op, Left)
+                | Op::infix(Rule::div_op, Left)
+                | Op::infix(Rule::mod_op, Left))
             .op(Op::prefix(Rule::pos_op) | Op::prefix(Rule::neg_op) | Op::prefix(Rule::opp_op))
     })
 }
@@ -54,6 +56,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
                 Rule::mul_op => OpType::Mul,
                 Rule::div_op => OpType::Div,
                 Rule::and_op => OpType::And,
+                Rule::mod_op => OpType::Mod,
                 Rule::or_op => OpType::Or,
                 Rule::gte_op => OpType::Gte,
                 Rule::lte_op => OpType::Lte,

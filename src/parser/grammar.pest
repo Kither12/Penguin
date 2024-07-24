@@ -14,13 +14,14 @@ assign_op       =  { "=" }
 sub_op          =  { "-" }
 mul_op          =  { "*" }
 div_op          =  { "/" }
+mod_op          =  { "%" }
 gt_op           =  { ">" }
 lt_op           =  { "<" }
 gte_op          =  { ">=" }
 lte_op          =  { "<=" }
 equal_op        =  { "==" }
 nequal_op       =  { "!=" }
-operator        = _{ add_op | sub_op | mul_op | div_op | nequal_op | equal_op | lte_op | gte_op | lt_op | gt_op }
+operator        = _{ mod_op | add_op | sub_op | mul_op | div_op | nequal_op | equal_op | lte_op | gte_op | lt_op | gt_op }
 assign_operator = _{ cum_add | cum_sub | cum_mul | cum_div | assign_op }
 neg_op          =  { "-" }
 pos_op          =  { "+" }

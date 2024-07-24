@@ -23,6 +23,9 @@ pub trait Primitive {
             OpType::Div => Ok(Box::new(Integer {
                 value: self.as_int() / other.as_int(),
             })),
+            OpType::Mod => Ok(Box::new(Integer {
+                value: self.as_int() % other.as_int(),
+            })),
             OpType::And => Ok(Box::new(Boolean {
                 value: self.as_bool() && other.as_bool(),
             })),

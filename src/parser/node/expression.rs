@@ -18,6 +18,7 @@ pub enum OpType {
     Lte,
     Eq,
     Neq,
+    Mod,
 }
 
 #[derive(Debug)]
