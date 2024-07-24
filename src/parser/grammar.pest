@@ -1,26 +1,32 @@
 ws      = _{ " " | "\t" | NEWLINE }
 COMMENT = _{ "#" }
 
-integer        =  { ASCII_DIGIT+ }
-boolean        =  {"true" | "false"}
-and_op         =  { "&&" }
-or_op         =  {  "||" }
-add_op         =  { "+" }
-sub_op         =  { "-" }
-mul_op         =  { "*" }
-div_op         =  { "/" }
-gt_op         =  { ">" }
-lt_op         =  { "<" }
-gte_op         =  { ">=" }
-lte_op         =  { "<=" }
-equal_op         =  { "==" }
-nequal_op         =  { "!=" }
-operator       = _{ add_op | sub_op | mul_op | div_op | nequal_op | equal_op | lte_op | gte_op | lt_op | gt_op}
-neg_op         =  { "-" }
-pos_op         =  { "+" }
-opp_op         =  { "!" }
-unary_operator = _{ neg_op | pos_op | opp_op }
-terminate      = _{ ";" }
+integer         =  { ASCII_DIGIT+ }
+boolean         =  { "true" | "false" }
+and_op          =  { "&&" }
+or_op           =  { "||" }
+add_op          =  { "+" }
+cum_add         =  { "+=" }
+cum_sub         =  { "-=" }
+cum_mul         =  { "*=" }
+cum_div         =  { "/=" }
+assign_op       =  { "=" }
+sub_op          =  { "-" }
+mul_op          =  { "*" }
+div_op          =  { "/" }
+gt_op           =  { ">" }
+lt_op           =  { "<" }
+gte_op          =  { ">=" }
+lte_op          =  { "<=" }
+equal_op        =  { "==" }
+nequal_op       =  { "!=" }
+operator        = _{ add_op | sub_op | mul_op | div_op | nequal_op | equal_op | lte_op | gte_op | lt_op | gt_op }
+assign_operator = _{ cum_add | cum_sub | cum_mul | cum_div | assign_op }
+neg_op          =  { "-" }
+pos_op          =  { "+" }
+opp_op          =  { "!" }
+unary_operator  = _{ neg_op | pos_op | opp_op }
+terminate       = _{ ";" }
 
 expr    =  { ws* ~ atom ~ ws* ~ (operator ~ ws* ~ atom ~ ws*)* }
 primary = _{ integer | identifier | boolean | ("(" ~ ws* ~ expr ~ ws* ~ ")") }
@@ -29,17 +35,17 @@ atom    = _{ (unary_operator ~ ws*)* ~ primary }
 identifier = { !keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
 declaration = { "gimme" ~ ws* ~ identifier ~ ws* ~ "=" ~ ws* ~ expr }
-assignment  = { identifier ~ ws* ~ "=" ~ ws* ~ expr }
+assignment  = { identifier ~ ws* ~ assign_operator ~ ws* ~ expr }
 
-line = _{((assignment | declaration | expr) ~ ws* ~ terminate) | ifelse | while_loop | scope }
-scope = {"{" ~ (ws* ~ line)* ~ ws* ~ "}" }
-code = { (line ~ ws*)* }
+line  = _{ ((assignment | declaration | expr) ~ ws* ~ terminate) | ifelse | while_loop | scope }
+scope =  { "{" ~ (ws* ~ line)* ~ ws* ~ "}" }
+code  =  { (line ~ ws*)* }
 
-if = {"if" ~ ws* ~ expr ~ ws* ~ scope}
-elif = {"elif" ~ ws* ~ expr ~ ws* ~ scope}
-else = {"else" ~ ws* ~ scope}
-ifelse = {if ~ (ws* ~ elif)* ~ ws* ~ else?}
+if     = { "if" ~ ws* ~ expr ~ ws* ~ scope }
+elif   = { "elif" ~ ws* ~ expr ~ ws* ~ scope }
+else   = { "else" ~ ws* ~ scope }
+ifelse = { if ~ (ws* ~ elif)* ~ ws* ~ else? }
 
-while_loop = {"while" ~ ws * ~ expr ~ ws* ~ scope}
+while_loop = { "while" ~ ws* ~ expr ~ ws* ~ scope }
 
 keyword = _{ "gimme" | "true" | "false" | "if" | "elif" | "else" }

@@ -1,19 +1,13 @@
 use anyhow::{Context, Result};
-use pest::{
-    iterators::Pairs,
-    pratt_parser::{Op, PrattParser},
-    Parser,
-};
+use pest::{iterators::Pairs, pratt_parser::PrattParser, Parser};
 use pest_derive::Parser;
 use std::{borrow::BorrowMut, iter::from_fn, str::FromStr, sync::OnceLock};
-
-use crate::parser::node::expression;
 
 use super::{
     ast::ASTNode,
     node::{
         conditional::IfElse,
-        declaration::{Assignment, Declaration},
+        declaration::{AssignOperation, Assignment, Declaration},
         expression::{ExprAtom, Expression, OpType},
         looping::WhileLoop,
         primitive::Integer,
@@ -98,8 +92,16 @@ pub fn parse_declaration<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Declaration<
 
 pub fn parse_assignment<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Assignment<'a>> {
     let identifier = pairs.next().unwrap().as_str();
+    let op = match pairs.next().unwrap().as_rule() {
+        Rule::assign_op => AssignOperation::AssignOp,
+        Rule::cum_add => AssignOperation::AssignAdd,
+        Rule::cum_sub => AssignOperation::AssignSub,
+        Rule::cum_mul => AssignOperation::AssignMul,
+        Rule::cum_div => AssignOperation::AssignDiv,
+        _ => unreachable!(),
+    };
     let expr = parse_expr(pairs.next().unwrap().into_inner())?;
-    Ok(Assignment::new(identifier, expr))
+    Ok(Assignment::new(identifier, op, expr))
 }
 pub fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
     Ok(Scope::new(
