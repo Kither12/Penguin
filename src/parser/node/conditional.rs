@@ -24,7 +24,7 @@ impl<'a> IfElse<'a> {
             let expr_val = expr
                 .evaluation(&environment)
                 .context("Failed to evaluate expression")?;
-            if expr_val.as_bool() {
+            if expr_val.as_bool()? {
                 environment = scope.execute(environment)?;
                 return Ok(environment);
             }

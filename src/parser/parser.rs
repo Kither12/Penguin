@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use pest::{iterators::Pairs, pratt_parser::PrattParser, Parser};
 use pest_derive::Parser;
-use std::{borrow::BorrowMut, iter::from_fn, str::FromStr, sync::OnceLock};
+use std::{borrow::BorrowMut, iter::from_fn, sync::OnceLock};
 
 use super::{
     ast::ASTNode,
@@ -10,7 +10,7 @@ use super::{
         declaration::{AssignOperation, Assignment, Declaration},
         expression::{ExprAtom, Expression, OpType},
         looping::WhileLoop,
-        primitive::Integer,
+        primitive::Primitive,
         scope::Scope,
     },
 };
@@ -50,7 +50,10 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
     pratt_parser()
         .map_primary(|primary| match primary.as_rule() {
             Rule::integer => Ok(Expression::Literal {
-                lhs: ExprAtom::Primitive(Box::new(Integer::from_str(primary.as_str())?)),
+                lhs: ExprAtom::Primitive(Primitive::Integer(primary.as_str().parse::<i64>()?)),
+            }),
+            Rule::boolean => Ok(Expression::Literal {
+                lhs: ExprAtom::Primitive(Primitive::Boolean(primary.as_str().parse::<bool>()?)),
             }),
             Rule::identifier => Ok(Expression::Literal {
                 lhs: ExprAtom::Identifier(primary.as_str()),

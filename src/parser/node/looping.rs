@@ -19,7 +19,7 @@ impl<'a> WhileLoop<'a> {
             .expr
             .evaluation(&environment)
             .context("Failed to execute the while loop")?;
-        while expr_val.as_bool() {
+        while expr_val.as_bool()? {
             environment = self
                 .scope
                 .execute(environment)

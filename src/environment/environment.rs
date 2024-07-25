@@ -10,11 +10,11 @@ use crate::parser::node::primitive::Primitive;
 pub struct Environment<'a> {
     scope_depth: u16,
     scope_stack: Vec<(&'a str, u16)>,
-    variable_mp: FxHashMap<&'a str, Vec<(Box<dyn Primitive>, u16)>>,
+    variable_mp: FxHashMap<&'a str, Vec<(Primitive, u16)>>,
 }
 
 impl<'a> Environment<'a> {
-    pub fn subscribe(mut self, identifier: &'a str, value: Box<dyn Primitive>) -> Result<Self> {
+    pub fn subscribe(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
         if !self.variable_mp.contains_key(identifier) {
             let val = vec![(value, self.scope_depth)];
             self.variable_mp.insert(identifier, val);
@@ -35,13 +35,13 @@ impl<'a> Environment<'a> {
         self.scope_stack.push((identifier, self.scope_depth));
         Ok(self)
     }
-    pub fn get_var(&self, identifier: &'a str) -> Result<&Box<dyn Primitive>> {
+    pub fn get_var(&self, identifier: &'a str) -> Result<&Primitive> {
         match self.variable_mp.get(identifier).and_then(|val| val.last()) {
             Some((val, _)) => Ok(val),
             None => Err(anyhow!("{} hasn't been declared", identifier)),
         }
     }
-    pub fn assign_var(mut self, identifier: &'a str, value: Box<dyn Primitive>) -> Result<Self> {
+    pub fn assign_var(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
         match self
             .variable_mp
             .get_mut(identifier)

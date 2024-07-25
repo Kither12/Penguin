@@ -29,7 +29,7 @@ pub enum OpType {
 
 #[derive(Debug)]
 pub enum ExprAtom<'a> {
-    Primitive(Box<dyn Primitive>),
+    Primitive(Primitive),
     Identifier(&'a str),
 }
 
@@ -50,13 +50,13 @@ pub enum Expression<'a> {
 }
 
 impl<'a> Expression<'a> {
-    pub fn evaluation(&self, environment: &Environment) -> Result<Box<dyn Primitive>> {
+    pub fn evaluation(&self, environment: &Environment) -> Result<Primitive> {
         match self {
             Expression::Literal { lhs } => match lhs {
-                ExprAtom::Primitive(val) => Ok(val.clone_box()),
+                ExprAtom::Primitive(val) => Ok(*val),
                 ExprAtom::Identifier(val) => {
                     let lhs_val = environment.get_var(val)?;
-                    Ok(lhs_val.clone_box())
+                    Ok(*lhs_val)
                 }
             },
             Expression::Unary { lhs, op } => {
@@ -66,16 +66,16 @@ impl<'a> Expression<'a> {
             Expression::Binary { lhs, op, rhs } => match op {
                 OpType::And => {
                     let lhs_val = lhs.evaluation(environment)?;
-                    if lhs_val.as_bool() == false {
-                        return Ok(lhs_val.clone_box());
+                    if lhs_val.as_bool()? == false {
+                        return Ok(lhs_val);
                     }
                     let rhs_val = rhs.evaluation(environment)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
                 OpType::Or => {
                     let lhs_val = lhs.evaluation(environment)?;
-                    if lhs_val.as_bool() == true {
-                        return Ok(lhs_val.clone_box());
+                    if lhs_val.as_bool()? == true {
+                        return Ok(lhs_val);
                     }
                     let rhs_val = rhs.evaluation(environment)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
