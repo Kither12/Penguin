@@ -128,22 +128,21 @@ pub fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
     Ok(Scope::new(
         pairs
             .map(|pair| match pair.as_rule() {
-                Rule::expr => {
-                    parse_expr(pair.into_inner()).and_then(|v| Ok(Box::new(ASTNode::Expr(v))))
-                }
+                Rule::expr => parse_expr(pair.into_inner()).and_then(|v| Ok(ASTNode::Expr(v))),
                 Rule::assignment => parse_assignment(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::Assignment(v)))),
+                    .and_then(|v| Ok(ASTNode::Assignment(v))),
                 Rule::declaration => parse_declaration(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::Declaration(v)))),
-                Rule::scope => parse_scope(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::Scope(v)))),
+                    .and_then(|v| Ok(ASTNode::Declaration(v))),
+                Rule::scope => {
+                    parse_scope(pair.into_inner().borrow_mut()).and_then(|v| Ok(ASTNode::Scope(v)))
+                }
                 Rule::ifelse => parse_if_else(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::IfElse(v)))),
+                    .and_then(|v| Ok(ASTNode::IfElse(v))),
                 Rule::while_loop => parse_while_loop(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::WhileLoop(v)))),
+                    .and_then(|v| Ok(ASTNode::WhileLoop(v))),
                 _ => unreachable!(),
             })
-            .collect::<Result<Vec<Box<ASTNode>>>>()?,
+            .collect::<Result<Vec<ASTNode>>>()?,
     ))
 }
 
@@ -177,30 +176,29 @@ pub fn parse_while_loop<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<WhileLoop<'a>
     Ok(WhileLoop::new(expr_parsed, scope_parsed))
 }
 
-pub fn parse_ast(code: &str) -> Result<Box<ASTNode>> {
+pub fn parse_ast(code: &str) -> Result<ASTNode> {
     let pairs = CParser::parse(Rule::code, code)
         .context("Failed to parser")?
         .next()
         .unwrap()
         .into_inner();
-    Ok(Box::new(ASTNode::Scope(Scope::new(
+    Ok(ASTNode::Scope(Scope::new(
         pairs
             .map(|pair| match pair.as_rule() {
-                Rule::expr => {
-                    parse_expr(pair.into_inner()).and_then(|v| Ok(Box::new(ASTNode::Expr(v))))
-                }
+                Rule::expr => parse_expr(pair.into_inner()).and_then(|v| Ok(ASTNode::Expr(v))),
                 Rule::assignment => parse_assignment(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::Assignment(v)))),
+                    .and_then(|v| Ok(ASTNode::Assignment(v))),
                 Rule::declaration => parse_declaration(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::Declaration(v)))),
-                Rule::scope => parse_scope(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::Scope(v)))),
+                    .and_then(|v| Ok(ASTNode::Declaration(v))),
+                Rule::scope => {
+                    parse_scope(pair.into_inner().borrow_mut()).and_then(|v| Ok(ASTNode::Scope(v)))
+                }
                 Rule::ifelse => parse_if_else(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::IfElse(v)))),
+                    .and_then(|v| Ok(ASTNode::IfElse(v))),
                 Rule::while_loop => parse_while_loop(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(Box::new(ASTNode::WhileLoop(v)))),
+                    .and_then(|v| Ok(ASTNode::WhileLoop(v))),
                 _ => unreachable!(),
             })
-            .collect::<Result<Vec<Box<ASTNode>>>>()?,
-    ))))
+            .collect::<Result<Vec<ASTNode>>>()?,
+    )))
 }

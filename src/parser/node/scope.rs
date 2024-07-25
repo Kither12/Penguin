@@ -3,17 +3,17 @@ use anyhow::{Context, Result};
 
 #[derive(Debug)]
 pub struct Scope<'a> {
-    pub code: Vec<Box<ASTNode<'a>>>,
+    pub code: Vec<ASTNode<'a>>,
 }
 
 impl<'a> Scope<'a> {
-    pub fn new(code: Vec<Box<ASTNode<'a>>>) -> Self {
+    pub fn new(code: Vec<ASTNode<'a>>) -> Self {
         Scope { code }
     }
     pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment> {
         environment = environment.open_scope();
         for node in self.code.iter() {
-            match node.as_ref() {
+            match node {
                 ASTNode::Expr(v) => {
                     println!(
                         "{:?}",

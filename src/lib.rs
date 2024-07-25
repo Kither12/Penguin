@@ -8,9 +8,9 @@ pub mod parser;
 pub fn run_code(code: &str) -> Result<()> {
     let ast_root = parse_ast(code)?;
     let mut environment = Environment::default();
-    if let ASTNode::Scope(v) = ast_root.as_ref() {
+    if let ASTNode::Scope(v) = ast_root {
         for node in v.code.iter() {
-            match node.as_ref() {
+            match node {
                 ASTNode::Expr(v) => {
                     println!(
                         "{:?}",

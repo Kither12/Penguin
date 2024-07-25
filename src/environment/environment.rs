@@ -16,7 +16,8 @@ pub struct Environment<'a> {
 impl<'a> Environment<'a> {
     pub fn subscribe(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
         if !self.variable_mp.contains_key(identifier) {
-            let val = vec![(value, self.scope_depth)];
+            let mut val = Vec::with_capacity(64);
+            val.push((value, self.scope_depth));
             self.variable_mp.insert(identifier, val);
             self.scope_stack.push((identifier, self.scope_depth));
             return Ok(self);
