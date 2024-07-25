@@ -24,16 +24,25 @@ fn pratt_parser() -> &'static PrattParser<Rule> {
     static PRATT_PARSER: OnceLock<PrattParser<Rule>> = OnceLock::new();
     PRATT_PARSER.get_or_init(|| {
         PrattParser::new()
+            .op(Op::infix(Rule::or_op, Left))
+            .op(Op::infix(Rule::and_op, Left))
+            .op(Op::infix(Rule::bit_or, Left))
+            .op(Op::infix(Rule::bit_xor, Left))
+            .op(Op::infix(Rule::bit_and, Left))
             .op(Op::infix(Rule::equal_op, Left) | Op::infix(Rule::nequal_op, Left))
             .op(Op::infix(Rule::lt_op, Left)
                 | Op::infix(Rule::gt_op, Left)
                 | Op::infix(Rule::lte_op, Left)
                 | Op::infix(Rule::gte_op, Left))
+            .op(Op::infix(Rule::shift_left, Left) | Op::infix(Rule::shift_right, Left))
             .op(Op::infix(Rule::add_op, Left) | Op::infix(Rule::sub_op, Left))
             .op(Op::infix(Rule::mul_op, Left)
                 | Op::infix(Rule::div_op, Left)
                 | Op::infix(Rule::mod_op, Left))
-            .op(Op::prefix(Rule::pos_op) | Op::prefix(Rule::neg_op) | Op::prefix(Rule::opp_op))
+            .op(Op::prefix(Rule::pos_op)
+                | Op::prefix(Rule::neg_op)
+                | Op::prefix(Rule::opp_op)
+                | Op::prefix(Rule::bit_not))
     })
 }
 
@@ -56,14 +65,19 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
                 Rule::mul_op => OpType::Mul,
                 Rule::div_op => OpType::Div,
                 Rule::and_op => OpType::And,
-                Rule::mod_op => OpType::Mod,
                 Rule::or_op => OpType::Or,
+                Rule::mod_op => OpType::Mod,
                 Rule::gte_op => OpType::Gte,
                 Rule::lte_op => OpType::Lte,
                 Rule::gt_op => OpType::Gte,
                 Rule::lt_op => OpType::Lte,
                 Rule::equal_op => OpType::Eq,
                 Rule::nequal_op => OpType::Neq,
+                Rule::shift_left => OpType::ShiftLeft,
+                Rule::shift_right => OpType::ShiftRight,
+                Rule::bit_and => OpType::BitAnd,
+                Rule::bit_or => OpType::BitOr,
+                Rule::bit_xor => OpType::BitXor,
                 _ => unreachable!(),
             };
 
@@ -78,6 +92,7 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
                 Rule::pos_op => OpType::Add,
                 Rule::neg_op => OpType::Sub,
                 Rule::opp_op => OpType::Opp,
+                Rule::bit_not => OpType::BitNot,
                 _ => unreachable!(),
             };
             Ok(Expression::Unary {

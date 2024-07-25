@@ -10,6 +10,16 @@ cum_add         =  { "+=" }
 cum_sub         =  { "-=" }
 cum_mul         =  { "*=" }
 cum_div         =  { "/=" }
+shift_left      =  { "<<" }
+shift_right     =  { ">>" }
+bit_and         =  { "&" }
+bit_or          =  { "|" }
+bit_xor         =  { "^" }
+cum_shift_left  =  { "<<=" }
+cum_shift_right =  { ">>=" }
+cum_bit_and     =  { "&=" }
+cum_bit_or      =  { "|=" }
+cum_bit_xor     =  { "^=" }
 assign_op       =  { "=" }
 sub_op          =  { "-" }
 mul_op          =  { "*" }
@@ -21,12 +31,13 @@ gte_op          =  { ">=" }
 lte_op          =  { "<=" }
 equal_op        =  { "==" }
 nequal_op       =  { "!=" }
-operator        = _{ mod_op | add_op | sub_op | mul_op | div_op | nequal_op | equal_op | lte_op | gte_op | lt_op | gt_op }
-assign_operator = _{ cum_add | cum_sub | cum_mul | cum_div | assign_op }
+operator        = _{ and_op | or_op | shift_left | shift_right | bit_and | bit_or | bit_xor | mod_op | add_op | sub_op | mul_op | div_op | nequal_op | equal_op | lte_op | gte_op | lt_op | gt_op }
+assign_operator = _{ cum_add | cum_sub | cum_mul | cum_div | cum_shift_left | cum_shift_right | cum_bit_and | cum_bit_or | cum_bit_xor | assign_op }
+bit_not         =  { "~" }
 neg_op          =  { "-" }
 pos_op          =  { "+" }
 opp_op          =  { "!" }
-unary_operator  = _{ neg_op | pos_op | opp_op }
+unary_operator  = _{ neg_op | pos_op | opp_op | bit_not }
 terminate       = _{ ";" }
 
 expr    =  { ws* ~ atom ~ ws* ~ (operator ~ ws* ~ atom ~ ws*)* }

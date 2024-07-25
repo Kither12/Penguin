@@ -19,6 +19,12 @@ pub enum OpType {
     Eq,
     Neq,
     Mod,
+    ShiftLeft,
+    ShiftRight,
+    BitAnd,
+    BitOr,
+    BitXor,
+    BitNot,
 }
 
 #[derive(Debug)]

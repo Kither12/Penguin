@@ -50,6 +50,21 @@ pub trait Primitive {
             OpType::Neq => Ok(Box::new(Boolean {
                 value: self.as_int() != other.as_int(),
             })),
+            OpType::BitAnd => Ok(Box::new(Integer {
+                value: self.as_int() & other.as_int(),
+            })),
+            OpType::BitOr => Ok(Box::new(Integer {
+                value: self.as_int() | other.as_int(),
+            })),
+            OpType::BitXor => Ok(Box::new(Integer {
+                value: self.as_int() ^ other.as_int(),
+            })),
+            OpType::ShiftLeft => Ok(Box::new(Integer {
+                value: self.as_int() << other.as_int(),
+            })),
+            OpType::ShiftRight => Ok(Box::new(Integer {
+                value: self.as_int() >> other.as_int(),
+            })),
             _ => unreachable!(),
         }
     }
@@ -63,6 +78,9 @@ pub trait Primitive {
             })),
             OpType::Opp => Ok(Box::new(Boolean {
                 value: !self.as_bool(),
+            })),
+            OpType::BitNot => Ok(Box::new(Integer {
+                value: !self.as_int(),
             })),
             _ => unreachable!(),
         }
