@@ -1,8 +1,11 @@
-gimme i = 0;
-while i < 20{
-    if i % 2 == 0 && 3 == 4{
-        i;
-    }
-    i;
-    i += 1;
+gimme j = 0;
+gimme total = 0;
+while j < 1000{
+    gimme i = 0;
+    while i < 100{
+        total += i;
+        i += 1;
+    }    
+    j += 1;
 }
+total;

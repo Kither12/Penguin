@@ -22,12 +22,13 @@ impl<'a> Environment<'a> {
             return Ok(self);
         }
         let var_stack = self.variable_mp.get_mut(identifier).unwrap();
-        let (_, depth) = var_stack.last().unwrap();
-        if *depth == self.scope_depth {
-            return Err(anyhow!(
-                "{} has already been declared in the current scope",
-                identifier
-            ));
+        if let Some((_, depth)) = var_stack.last() {
+            if *depth == self.scope_depth {
+                return Err(anyhow!(
+                    "{} has already been declared in the current scope",
+                    identifier
+                ));
+            }
         }
 
         var_stack.push((value, self.scope_depth));

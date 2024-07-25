@@ -69,8 +69,8 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
                 Rule::mod_op => OpType::Mod,
                 Rule::gte_op => OpType::Gte,
                 Rule::lte_op => OpType::Lte,
-                Rule::gt_op => OpType::Gte,
-                Rule::lt_op => OpType::Lte,
+                Rule::gt_op => OpType::Gt,
+                Rule::lt_op => OpType::Lt,
                 Rule::equal_op => OpType::Eq,
                 Rule::nequal_op => OpType::Neq,
                 Rule::shift_left => OpType::ShiftLeft,
@@ -136,6 +136,8 @@ pub fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
                     .and_then(|v| Ok(Box::new(ASTNode::Scope(v)))),
                 Rule::ifelse => parse_if_else(pair.into_inner().borrow_mut())
                     .and_then(|v| Ok(Box::new(ASTNode::IfElse(v)))),
+                Rule::while_loop => parse_while_loop(pair.into_inner().borrow_mut())
+                    .and_then(|v| Ok(Box::new(ASTNode::WhileLoop(v)))),
                 _ => unreachable!(),
             })
             .collect::<Result<Vec<Box<ASTNode>>>>()?,
@@ -194,7 +196,7 @@ pub fn parse_ast(code: &str) -> Result<Box<ASTNode>> {
                     .and_then(|v| Ok(Box::new(ASTNode::IfElse(v)))),
                 Rule::while_loop => parse_while_loop(pair.into_inner().borrow_mut())
                     .and_then(|v| Ok(Box::new(ASTNode::WhileLoop(v)))),
-                rule => unreachable!("Unexpected rule: {:?}", rule),
+                _ => unreachable!(),
             })
             .collect::<Result<Vec<Box<ASTNode>>>>()?,
     ))))
