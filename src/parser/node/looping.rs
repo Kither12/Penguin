@@ -15,19 +15,10 @@ impl<'a> WhileLoop<'a> {
         WhileLoop { expr, scope }
     }
     pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment<'a>> {
-        let mut expr_val = self
-            .expr
-            .evaluation(&environment)
-            .context("Failed to execute the while loop")?;
+        let mut expr_val = self.expr.evaluation(&environment)?;
         while expr_val.as_bool()? {
-            environment = self
-                .scope
-                .execute(environment)
-                .context("Failed to execute the while loop")?;
-            expr_val = self
-                .expr
-                .evaluation(&environment)
-                .context("Failed to execute the while loop")?
+            environment = self.scope.execute(environment)?;
+            expr_val = self.expr.evaluation(&environment)?
         }
         Ok(environment)
     }

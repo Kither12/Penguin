@@ -1,5 +1,7 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Result};
+use pest::error::{Error, ErrorVariant, InputLocation};
 use pest::{iterators::Pairs, pratt_parser::PrattParser, Parser};
+use pest::{Position, Span};
 use pest_derive::Parser;
 use std::{borrow::BorrowMut, iter::from_fn, sync::OnceLock};
 
@@ -105,13 +107,13 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
         })
         .parse(pairs)
 }
-pub fn parse_declaration<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Declaration<'a>> {
+fn parse_declaration<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Declaration<'a>> {
     let identifier = pairs.next().unwrap().as_str();
     let expr = parse_expr(pairs.next().unwrap().into_inner())?;
     Ok(Declaration::new(identifier, expr))
 }
 
-pub fn parse_assignment<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Assignment<'a>> {
+fn parse_assignment<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Assignment<'a>> {
     let identifier = pairs.next().unwrap().as_str();
     let op = match pairs.next().unwrap().as_rule() {
         Rule::assign_op => AssignOperation::AssignOp,
@@ -124,7 +126,7 @@ pub fn parse_assignment<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Assignment<'a
     let expr = parse_expr(pairs.next().unwrap().into_inner())?;
     Ok(Assignment::new(identifier, op, expr))
 }
-pub fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
+fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
     Ok(Scope::new(
         pairs
             .map(|pair| match pair.as_rule() {
@@ -146,7 +148,7 @@ pub fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
     ))
 }
 
-pub fn parse_if_else<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<IfElse<'a>> {
+fn parse_if_else<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<IfElse<'a>> {
     let mut pairs = pairs.peekable();
     let if_clause = from_fn(|| {
         pairs.next_if(|pair| match pair.as_rule() {
@@ -170,15 +172,33 @@ pub fn parse_if_else<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<IfElse<'a>> {
     Ok(IfElse::new(if_clause, else_clause))
 }
 
-pub fn parse_while_loop<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<WhileLoop<'a>> {
+fn parse_while_loop<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<WhileLoop<'a>> {
     let expr_parsed = parse_expr(pairs.next().unwrap().into_inner())?;
     let scope_parsed = parse_scope(pairs.next().unwrap().into_inner().borrow_mut())?;
     Ok(WhileLoop::new(expr_parsed, scope_parsed))
 }
 
+fn handle_parse_error(code: &str, e: Error<Rule>) -> anyhow::Error {
+    let err = match e.location {
+        InputLocation::Pos(v) => Error::new_from_pos(
+            ErrorVariant::<()>::CustomError {
+                message: String::from("Parse error occurred"),
+            },
+            Position::new(code, v).unwrap(),
+        ),
+        InputLocation::Span((u, v)) => Error::new_from_span(
+            ErrorVariant::<()>::CustomError {
+                message: String::from("Parse error occurred"),
+            },
+            Span::new(code, u, v).unwrap(),
+        ),
+    };
+    anyhow!(err)
+}
+
 pub fn parse_ast(code: &str) -> Result<ASTNode> {
     let pairs = CParser::parse(Rule::code, code)
-        .context("Failed to parser")?
+        .map_err(|e| handle_parse_error(code, e))?
         .next()
         .unwrap()
         .into_inner();

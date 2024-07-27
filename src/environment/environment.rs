@@ -6,6 +6,21 @@ use fxhash::FxHashMap;
 
 use crate::parser::node::primitive::Primitive;
 
+#[derive(Debug)]
+enum EnvironmentError {
+    ReDeclaration(String),
+    NotDeclareation(String),
+}
+
+impl std::fmt::Display for EnvironmentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ReDeclaration(i) => write!(f, "{i} has been previously declared"),
+            Self::NotDeclareation(i) => write!(f, "{i} was not declared"),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Environment<'a> {
     scope_depth: u16,
@@ -25,10 +40,9 @@ impl<'a> Environment<'a> {
         let var_stack = self.variable_mp.get_mut(identifier).unwrap();
         if let Some((_, depth)) = var_stack.last() {
             if *depth == self.scope_depth {
-                return Err(anyhow!(
-                    "{} has already been declared in the current scope",
-                    identifier
-                ));
+                return Err(anyhow!(EnvironmentError::ReDeclaration(
+                    identifier.to_owned()
+                )));
             }
         }
 
@@ -39,7 +53,9 @@ impl<'a> Environment<'a> {
     pub fn get_var(&self, identifier: &'a str) -> Result<&Primitive> {
         match self.variable_mp.get(identifier).and_then(|val| val.last()) {
             Some((val, _)) => Ok(val),
-            None => Err(anyhow!("{} hasn't been declared", identifier)),
+            None => Err(anyhow!(EnvironmentError::NotDeclareation(
+                identifier.to_owned()
+            ))),
         }
     }
     pub fn assign_var(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
@@ -52,7 +68,9 @@ impl<'a> Environment<'a> {
                 *val = value;
                 Ok(self)
             }
-            None => Err(anyhow!("{} hasn't been declared", identifier)),
+            None => Err(anyhow!(EnvironmentError::NotDeclareation(
+                identifier.to_owned()
+            ))),
         }
     }
     pub fn open_scope(mut self) -> Self {

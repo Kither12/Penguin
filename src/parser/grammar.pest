@@ -51,7 +51,7 @@ assignment  = { identifier ~ ws ~ assign_operator ~ ws ~ expr }
 
 line  = _{ ((assignment | declaration | expr) ~ ws ~ terminate) | ifelse | while_loop | scope }
 scope =  { "{" ~ (ws ~ line)* ~ ws ~ "}" }
-code  =  { (line ~ ws)* }
+code  =  { (line ~ ws)* ~ EOI}
 
 if     = { "if" ~ ws ~ expr ~ ws ~ scope }
 elif   = { "elif" ~ ws ~ expr ~ ws ~ scope }

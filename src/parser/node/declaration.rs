@@ -52,9 +52,7 @@ impl<'a> Assignment<'a> {
             AssignOperation::AssignOp => self.expr.evaluation(&environment),
         }?;
 
-        environment = environment
-            .assign_var(self.identifier, expr_val)
-            .context(format!("Failed to assign {}", self.identifier))?;
+        environment = environment.assign_var(self.identifier, expr_val)?;
         Ok(environment)
     }
 }

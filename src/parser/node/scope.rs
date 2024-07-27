@@ -15,36 +15,22 @@ impl<'a> Scope<'a> {
         for node in self.code.iter() {
             match node {
                 ASTNode::Expr(v) => {
-                    println!(
-                        "{:?}",
-                        v.evaluation(&environment)
-                            .context("Error found when try to run expression")?
-                    );
+                    println!("{:?}", v.evaluation(&environment)?);
                 }
                 ASTNode::Declaration(v) => {
-                    environment = v
-                        .execute(environment)
-                        .context("Error found when try to run declaration")?;
+                    environment = v.execute(environment)?;
                 }
                 ASTNode::Assignment(v) => {
-                    environment = v
-                        .execute(environment)
-                        .context("Error found when try to run assignment")?;
+                    environment = v.execute(environment)?;
                 }
                 ASTNode::Scope(v) => {
-                    environment = v
-                        .execute(environment)
-                        .context("Error found when try to run scope")?;
+                    environment = v.execute(environment)?;
                 }
                 ASTNode::IfElse(v) => {
-                    environment = v
-                        .execute(environment)
-                        .context("Error found when try to run declaration")?;
+                    environment = v.execute(environment)?;
                 }
                 ASTNode::WhileLoop(v) => {
-                    environment = v
-                        .execute(environment)
-                        .context("Error found when try to run declaration")?;
+                    environment = v.execute(environment)?;
                 }
             }
         }
