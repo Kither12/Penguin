@@ -1,5 +1,5 @@
 use crate::{environment::environment::Environment, parser::ast::ASTNode};
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 #[derive(Debug)]
 pub struct Scope<'a> {

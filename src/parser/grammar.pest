@@ -1,4 +1,5 @@
 ws      = _{( " " | "\t" | NEWLINE)*}
+eoi = _{ !ANY }
 COMMENT = _{ "#" }
 
 integer         =  { ASCII_DIGIT+ }
@@ -40,7 +41,7 @@ opp_op          =  { "!" }
 unary_operator  = _{ neg_op | pos_op | opp_op | bit_not }
 terminate       = _{ ";" }
 
-expr    =  { ws ~ atom ~ ws ~ (operator ~ ws ~ atom ~ ws)* }
+expr    =  { atom ~ ws ~ (operator ~ ws ~ atom ~ ws)* }
 primary = _{ integer | identifier | boolean | ("(" ~ ws ~ expr ~ ws ~ ")") }
 atom    = _{ (unary_operator ~ ws)* ~ primary }
 
@@ -51,7 +52,7 @@ assignment  = { identifier ~ ws ~ assign_operator ~ ws ~ expr }
 
 line  = _{ ((assignment | declaration | expr) ~ ws ~ terminate) | ifelse | while_loop | scope }
 scope =  { "{" ~ (ws ~ line)* ~ ws ~ "}" }
-code  =  { (line ~ ws)* ~ EOI}
+code  =  { ws ~ (line ~ ws)* ~ eoi}
 
 if     = { "if" ~ ws ~ expr ~ ws ~ scope }
 elif   = { "elif" ~ ws ~ expr ~ ws ~ scope }

@@ -1,4 +1,4 @@
-use anyhow::{Context, Ok, Result};
+use anyhow::Result;
 use environment::environment::Environment;
 use parser::{ast::ASTNode, parser::parse_ast};
 
@@ -34,4 +34,123 @@ pub fn run_code(code: &str) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+
+    #[test]
+    fn while_loop_should_work() {
+        let res = run_code(
+            "   
+                gimme i = 0;
+                while  i < 10{
+                    i += 1;
+                }
+                i;
+            ",
+        );
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn nested_if_else_should_work() {
+        let res = run_code(
+            "
+                if 2 != 2{
+                    3 + 3;
+                }
+                elif 3 == 3{
+                    if 4 != 4{
+                        9 + 9;
+                    }
+                    else{
+                        5 + 5;
+                    }
+                }
+                else{
+                    4 + 4;
+                }
+            ",
+        );
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn if_else_should_work() {
+        let res = run_code(
+            "
+                if 2 != 2{
+                    3 + 3;
+                }
+                else{
+                    4 + 4;
+                }
+            ",
+        );
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn if_should_work() {
+        let res = run_code(
+            "
+                if 2 == 2{
+                    3 + 3;
+                }
+            ",
+        );
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn assign_should_work() {
+        let res = run_code(
+            "
+                gimme a = 3;
+                {
+                    a = 2;
+                }
+                a;
+            ",
+        );
+        println!("{:?}", res);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn shadowing_should_work() {
+        let res = run_code(
+            "
+                gimme a = 3;
+                {
+                    gimme a = 1;
+                    a;
+                }
+                a;
+            ",
+        );
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn not_declare_should_fail() {
+        let res = run_code(
+            "
+                a = 3;
+            ",
+        );
+        assert!(res.is_err());
+    }
+    #[test]
+    fn reassign_should_fail() {
+        let res = run_code(
+            "
+                gimme a = 2;
+                gimme a = 3;
+            ",
+        );
+        assert!(res.is_err());
+    }
 }

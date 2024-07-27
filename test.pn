@@ -1,1 +1,6 @@
-sdfsdfsdf
+gimme a = 3;
+{
+    gimme a = 1;
+    a;
+}
+a;
