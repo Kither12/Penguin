@@ -10,8 +10,14 @@ criterion = { version = "0.5.1", features = ["html_reports"] }
 name = "benchmark"
 harness = false
 
+[profile.release]
+debug = 1
+
+[features]
+dhat-heap = []
 
 [dependencies]
+dhat = "0.3.3"
 pest = "2.7.11"
 pest_derive = "2.7.11"
 anyhow = "1.0.86"

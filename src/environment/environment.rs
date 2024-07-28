@@ -23,55 +23,46 @@ impl std::fmt::Display for EnvironmentError {
 
 #[derive(Default)]
 pub struct Environment<'a> {
-    scope_depth: u16,
-    scope_stack: Vec<(&'a str, u16)>,
-    variable_mp: FxHashMap<&'a str, Vec<(Primitive, u16)>>,
+    scope_depth: usize,
+    scope_stack: Vec<(&'a str, usize)>,
+    variable_mp: FxHashMap<&'a str, Vec<(Primitive, usize)>>,
 }
 
 impl<'a> Environment<'a> {
     pub fn subscribe(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
-        if !self.variable_mp.contains_key(identifier) {
+        if let Some(var_stack) = self.variable_mp.get_mut(identifier) {
+            if let Some((_, depth)) = var_stack.last() {
+                if *depth == self.scope_depth {
+                    return Err(anyhow!(EnvironmentError::ReDeclaration(
+                        identifier.to_owned()
+                    )));
+                }
+            }
+            var_stack.push((value, self.scope_depth));
+        } else {
             let mut val = Vec::with_capacity(64);
             val.push((value, self.scope_depth));
             self.variable_mp.insert(identifier, val);
-            self.scope_stack.push((identifier, self.scope_depth));
-            return Ok(self);
         }
-        let var_stack = self.variable_mp.get_mut(identifier).unwrap();
-        if let Some((_, depth)) = var_stack.last() {
-            if *depth == self.scope_depth {
-                return Err(anyhow!(EnvironmentError::ReDeclaration(
-                    identifier.to_owned()
-                )));
-            }
-        }
-
-        var_stack.push((value, self.scope_depth));
         self.scope_stack.push((identifier, self.scope_depth));
         Ok(self)
     }
     pub fn get_var(&self, identifier: &'a str) -> Result<&Primitive> {
-        match self.variable_mp.get(identifier).and_then(|val| val.last()) {
-            Some((val, _)) => Ok(val),
-            None => Err(anyhow!(EnvironmentError::NotDeclareation(
-                identifier.to_owned()
-            ))),
-        }
+        self.variable_mp
+            .get(identifier)
+            .and_then(|val| val.last())
+            .map(|(v, _)| v)
+            .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))
     }
     pub fn assign_var(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
-        match self
+        *self
             .variable_mp
             .get_mut(identifier)
             .and_then(|val| val.last_mut())
-        {
-            Some((val, _)) => {
-                *val = value;
-                Ok(self)
-            }
-            None => Err(anyhow!(EnvironmentError::NotDeclareation(
-                identifier.to_owned()
-            ))),
-        }
+            .map(|(v, _)| v)
+            .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))? =
+            value;
+        Ok(self)
     }
     pub fn open_scope(mut self) -> Self {
         self.scope_depth += 1;
@@ -80,8 +71,7 @@ impl<'a> Environment<'a> {
     pub fn close_scope(mut self) -> Self {
         while let Some((key, depth)) = self.scope_stack.last() {
             if *depth == self.scope_depth {
-                let var_stack = self.variable_mp.get_mut(key).unwrap();
-                var_stack.pop();
+                self.variable_mp.get_mut(key).and_then(|v| v.pop());
                 self.scope_stack.pop();
             } else {
                 break;
