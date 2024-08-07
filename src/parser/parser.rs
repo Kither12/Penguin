@@ -3,8 +3,10 @@ use pest::error::{Error, ErrorVariant, InputLocation};
 use pest::{iterators::Pairs, pratt_parser::PrattParser, Parser};
 use pest::{Position, Span};
 use pest_derive::Parser;
+use std::rc::Rc;
 use std::{borrow::BorrowMut, iter::from_fn, sync::OnceLock};
 
+use super::node::function::{ArgumentType, Func, FunctionCall};
 use super::{
     ast::ASTNode,
     node::{
@@ -107,10 +109,28 @@ fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
         })
         .parse(pairs)
 }
+fn parse_function_declaration<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Func<'a>> {
+    let mut pairs = pairs.peekable();
+    let argument = from_fn(|| pairs.next_if(|pair| pair.as_rule().eq(&Rule::identifier)))
+        .map(|v| v.as_str())
+        .collect::<Vec<&str>>();
+    let scope = parse_scope(pairs.next().unwrap().into_inner().borrow_mut())?;
+    Ok(Func::new(argument, scope, None))
+}
 fn parse_declaration<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Declaration<'a>> {
     let identifier = pairs.next().unwrap().as_str();
-    let expr = parse_expr(pairs.next().unwrap().into_inner())?;
-    Ok(Declaration::new(identifier, expr))
+    let val = pairs.next().unwrap();
+    match val.as_rule() {
+        Rule::expr => {
+            let expr = parse_expr(val.into_inner())?;
+            Ok(Declaration::Expression { identifier, expr })
+        }
+        Rule::function_declaration => Ok(Declaration::Function {
+            identifier,
+            func: Rc::new(parse_function_declaration(val.into_inner().borrow_mut())?),
+        }),
+        _ => unreachable!(),
+    }
 }
 
 fn parse_assignment<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Assignment<'a>> {
@@ -150,20 +170,14 @@ fn parse_scope<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<Scope<'a>> {
 
 fn parse_if_else<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<IfElse<'a>> {
     let mut pairs = pairs.peekable();
-    let if_clause = from_fn(|| {
-        pairs.next_if(|pair| match pair.as_rule() {
-            Rule::r#if | Rule::elif => true,
-            Rule::r#else => false,
-            _ => unreachable!(),
+    let if_clause = from_fn(|| pairs.next_if(|pair| pair.as_rule().ne(&Rule::r#else)))
+        .map(|pair| {
+            let mut inner = pair.into_inner();
+            let expr_parsed = parse_expr(inner.next().unwrap().into_inner());
+            let scope_parsed = parse_scope(inner.next().unwrap().into_inner().borrow_mut());
+            expr_parsed.and_then(|a| scope_parsed.map(|b| (a, b)))
         })
-    })
-    .map(|pair| {
-        let mut inner = pair.into_inner();
-        let expr_parsed = parse_expr(inner.next().unwrap().into_inner());
-        let scope_parsed = parse_scope(inner.next().unwrap().into_inner().borrow_mut());
-        expr_parsed.and_then(|a| scope_parsed.map(|b| (a, b)))
-    })
-    .collect::<Result<Vec<(Expression, Scope)>>>()?;
+        .collect::<Result<Vec<(Expression, Scope)>>>()?;
 
     let else_clause = pairs
         .next()
@@ -196,6 +210,20 @@ fn handle_parse_error(code: &str, e: Error<Rule>) -> anyhow::Error {
     anyhow!(err)
 }
 
+pub fn parse_function_call<'a>(pairs: &mut Pairs<'a, Rule>) -> Result<FunctionCall<'a>> {
+    let identifier = pairs.next().unwrap().as_str();
+    let argument_input = pairs
+        .map(|v| match v.as_rule() {
+            Rule::function_declaration => parse_function_declaration(v.into_inner().borrow_mut())
+                .and_then(|v| Ok(ArgumentType::Func(v))),
+            Rule::expr => parse_expr(v.into_inner()).and_then(|v| Ok(ArgumentType::Expr(v))),
+            Rule::ref_var => Ok(ArgumentType::Ref(v.into_inner().next().unwrap().as_str())),
+            _ => unreachable!(),
+        })
+        .collect::<Result<Vec<ArgumentType>>>()?;
+    Ok(FunctionCall::new(identifier, argument_input))
+}
+
 pub fn parse_ast(code: &str) -> Result<ASTNode> {
     let pairs = CParser::parse(Rule::code, code)
         .map_err(|e| handle_parse_error(code, e))?
@@ -217,6 +245,8 @@ pub fn parse_ast(code: &str) -> Result<ASTNode> {
                     .and_then(|v| Ok(ASTNode::IfElse(v))),
                 Rule::while_loop => parse_while_loop(pair.into_inner().borrow_mut())
                     .and_then(|v| Ok(ASTNode::WhileLoop(v))),
+                Rule::function_call => parse_function_call(pair.into_inner().borrow_mut())
+                    .and_then(|v| Ok(ASTNode::FunctionCall(v))),
                 _ => unreachable!(),
             })
             .collect::<Result<Vec<ASTNode>>>()?,

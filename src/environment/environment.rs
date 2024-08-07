@@ -1,10 +1,12 @@
 extern crate fxhash;
 
+use std::rc::Rc;
+
 use anyhow::{anyhow, Result};
 
 use fxhash::FxHashMap;
 
-use crate::parser::node::primitive::Primitive;
+use crate::parser::node::{function::Func, primitive::Primitive};
 
 #[derive(Debug)]
 enum EnvironmentError {
@@ -20,16 +22,41 @@ impl std::fmt::Display for EnvironmentError {
         }
     }
 }
+#[derive(Debug, Clone)]
+pub enum EnvironmentItem<'a> {
+    Primitive(Primitive),
+    Func(Rc<Func<'a>>),
+}
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Environment<'a> {
     scope_depth: usize,
     scope_stack: Vec<(&'a str, usize)>,
-    variable_mp: FxHashMap<&'a str, Vec<(Primitive, usize)>>,
+    variable_mp: FxHashMap<&'a str, Vec<(EnvironmentItem<'a>, usize)>>,
+}
+
+impl<'a> Clone for Environment<'a> {
+    fn clone(&self) -> Self {
+        // When cloning, we only care about the value in the latest scope
+        let mut variable_mp = FxHashMap::default();
+        for (k, v) in &self.variable_mp {
+            if let Some((identifier, _)) = v.last() {
+                let mut val = Vec::with_capacity(64);
+                val.push((identifier.clone(), 0usize));
+                variable_mp.insert(*k, val);
+            }
+        }
+
+        Self {
+            scope_depth: 0,
+            scope_stack: Vec::default(),
+            variable_mp: variable_mp,
+        }
+    }
 }
 
 impl<'a> Environment<'a> {
-    pub fn subscribe(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
+    pub fn subscribe(mut self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<Self> {
         if let Some(var_stack) = self.variable_mp.get_mut(identifier) {
             if let Some((_, depth)) = var_stack.last() {
                 if *depth == self.scope_depth {
@@ -47,14 +74,14 @@ impl<'a> Environment<'a> {
         self.scope_stack.push((identifier, self.scope_depth));
         Ok(self)
     }
-    pub fn get_var(&self, identifier: &'a str) -> Result<&Primitive> {
+    pub fn get_var(&self, identifier: &'a str) -> Result<&EnvironmentItem> {
         self.variable_mp
             .get(identifier)
             .and_then(|val| val.last())
             .map(|(v, _)| v)
             .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))
     }
-    pub fn assign_var(mut self, identifier: &'a str, value: Primitive) -> Result<Self> {
+    pub fn assign_var(mut self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<Self> {
         *self
             .variable_mp
             .get_mut(identifier)

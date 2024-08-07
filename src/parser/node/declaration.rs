@@ -1,10 +1,13 @@
 use anyhow::Result;
 
 use crate::environment::environment::Environment;
+use crate::environment::environment::EnvironmentItem;
 
 use super::expression::Expression;
 
 use super::expression::OpType;
+use super::function::Func;
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub enum AssignOperation {
@@ -30,8 +33,11 @@ impl<'a> Assignment<'a> {
             expr: expr,
         }
     }
-    pub fn execute(&self, mut environment: Environment<'a>) -> Result<Environment> {
-        let val = environment.get_var(&self.identifier)?;
+    pub fn execute(&self, environment: Environment<'a>) -> Result<Environment> {
+        let val = match environment.get_var(&self.identifier)? {
+            EnvironmentItem::Primitive(val) => val,
+            EnvironmentItem::Func(val) => todo!(),
+        };
         let expr_val = match self.op {
             AssignOperation::AssignAdd => self
                 .expr
@@ -51,27 +57,31 @@ impl<'a> Assignment<'a> {
                 .and_then(|v| v.evaluate_primary(val, &OpType::Div)),
             AssignOperation::AssignOp => self.expr.evaluation(&environment),
         }?;
-
-        environment = environment.assign_var(self.identifier, expr_val)?;
-        Ok(environment)
+        environment.assign_var(self.identifier, EnvironmentItem::Primitive(expr_val))
     }
 }
 
 #[derive(Debug)]
-pub struct Declaration<'a> {
-    identifier: &'a str,
-    expr: Expression<'a>,
+pub enum Declaration<'a> {
+    Expression {
+        identifier: &'a str,
+        expr: Expression<'a>,
+    },
+    Function {
+        identifier: &'a str,
+        func: Rc<Func<'a>>,
+    },
 }
 impl<'a> Declaration<'a> {
-    pub fn new(identifier: &'a str, expr: Expression<'a>) -> Self {
-        Self {
-            identifier: identifier,
-            expr: expr,
+    pub fn execute(&self, environment: Environment<'a>) -> Result<Environment> {
+        match self {
+            Self::Expression { identifier, expr } => {
+                let expr_val = expr.evaluation(&environment)?;
+                environment.subscribe(identifier, EnvironmentItem::Primitive(expr_val))
+            }
+            Self::Function { identifier, func } => {
+                environment.subscribe(identifier, EnvironmentItem::Func(Rc::clone(func)))
+            }
         }
-    }
-    pub fn execute(&self, mut environment: Environment<'a>) -> Result<Environment> {
-        let expr_val = self.expr.evaluation(&environment)?;
-        environment = environment.subscribe(self.identifier, expr_val)?;
-        Ok(environment)
     }
 }

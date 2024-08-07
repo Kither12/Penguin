@@ -14,24 +14,13 @@ impl<'a> Scope<'a> {
         environment = environment.open_scope();
         for node in self.code.iter() {
             match node {
-                ASTNode::Expr(v) => {
-                    println!("{:?}", v.evaluation(&environment)?);
-                }
-                ASTNode::Declaration(v) => {
-                    environment = v.execute(environment)?;
-                }
-                ASTNode::Assignment(v) => {
-                    environment = v.execute(environment)?;
-                }
-                ASTNode::Scope(v) => {
-                    environment = v.execute(environment)?;
-                }
-                ASTNode::IfElse(v) => {
-                    environment = v.execute(environment)?;
-                }
-                ASTNode::WhileLoop(v) => {
-                    environment = v.execute(environment)?;
-                }
+                ASTNode::Expr(v) => println!("{:?}", v.evaluation(&environment)?),
+                ASTNode::Declaration(v) => environment = v.execute(environment)?,
+                ASTNode::Assignment(v) => environment = v.execute(environment)?,
+                ASTNode::Scope(v) => environment = v.execute(environment)?,
+                ASTNode::IfElse(v) => environment = v.execute(environment)?,
+                ASTNode::WhileLoop(v) => environment = v.execute(environment)?,
+                ASTNode::FunctionCall(v) => environment = v.execute(environment)?,
             }
         }
         environment = environment.close_scope();

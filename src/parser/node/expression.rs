@@ -1,4 +1,4 @@
-use crate::environment::environment::Environment;
+use crate::environment::environment::{Environment, EnvironmentItem};
 use anyhow::Result;
 
 use super::primitive::Primitive;
@@ -54,10 +54,10 @@ impl<'a> Expression<'a> {
         match self {
             Expression::Literal { lhs } => match lhs {
                 ExprAtom::Primitive(val) => Ok(*val),
-                ExprAtom::Identifier(val) => {
-                    let lhs_val = environment.get_var(val)?;
-                    Ok(*lhs_val)
-                }
+                ExprAtom::Identifier(val) => match environment.get_var(val)? {
+                    EnvironmentItem::Primitive(val) => Ok(*val),
+                    EnvironmentItem::Func(val) => todo!(),
+                },
             },
             Expression::Unary { lhs, op } => {
                 let lhs_val = lhs.evaluation(environment)?;

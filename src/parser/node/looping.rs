@@ -18,7 +18,7 @@ impl<'a> WhileLoop<'a> {
         let mut expr_val = self.expr.evaluation(&environment)?;
         while expr_val.as_bool()? {
             environment = self.scope.execute(environment)?;
-            expr_val = self.expr.evaluation(&environment)?
+            expr_val = self.expr.evaluation(&environment)?;
         }
         Ok(environment)
     }
