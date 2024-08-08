@@ -33,29 +33,39 @@ impl<'a> Assignment<'a> {
             expr: expr,
         }
     }
-    pub fn execute(&self, environment: Environment<'a>) -> Result<Environment> {
-        let val = match environment.get_var(&self.identifier)? {
+    pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment> {
+        let var = environment.get_var(&self.identifier)?;
+        environment = var.0;
+        let val = match var.1.as_ref() {
             EnvironmentItem::Primitive(val) => val,
             EnvironmentItem::Func(val) => todo!(),
         };
         let expr_val = match self.op {
-            AssignOperation::AssignAdd => self
-                .expr
-                .evaluation(&environment)
-                .and_then(|v| v.evaluate_primary(val, &OpType::Add)),
-            AssignOperation::AssignSub => self
-                .expr
-                .evaluation(&environment)
-                .and_then(|v| v.evaluate_primary(val, &OpType::Sub)),
-            AssignOperation::AssignMul => self
-                .expr
-                .evaluation(&environment)
-                .and_then(|v| v.evaluate_primary(val, &OpType::Mul)),
-            AssignOperation::AssignDiv => self
-                .expr
-                .evaluation(&environment)
-                .and_then(|v| v.evaluate_primary(val, &OpType::Div)),
-            AssignOperation::AssignOp => self.expr.evaluation(&environment),
+            AssignOperation::AssignAdd => {
+                let v = self.expr.execute(environment)?;
+                environment = v.0;
+                v.1.evaluate_primary(val, &OpType::Add)
+            }
+            AssignOperation::AssignSub => {
+                let v = self.expr.execute(environment)?;
+                environment = v.0;
+                v.1.evaluate_primary(val, &OpType::Sub)
+            }
+            AssignOperation::AssignMul => {
+                let v = self.expr.execute(environment)?;
+                environment = v.0;
+                v.1.evaluate_primary(val, &OpType::Mul)
+            }
+            AssignOperation::AssignDiv => {
+                let v = self.expr.execute(environment)?;
+                environment = v.0;
+                v.1.evaluate_primary(val, &OpType::Div)
+            }
+            AssignOperation::AssignOp => {
+                let v = self.expr.execute(environment)?;
+                environment = v.0;
+                Ok(v.1)
+            }
         }?;
         environment.assign_var(self.identifier, EnvironmentItem::Primitive(expr_val))
     }
@@ -76,8 +86,8 @@ impl<'a> Declaration<'a> {
     pub fn execute(&self, environment: Environment<'a>) -> Result<Environment> {
         match self {
             Self::Expression { identifier, expr } => {
-                let expr_val = expr.evaluation(&environment)?;
-                environment.subscribe(identifier, EnvironmentItem::Primitive(expr_val))
+                let (env, expr_val) = expr.execute(environment)?;
+                env.subscribe(identifier, EnvironmentItem::Primitive(expr_val))
             }
             Self::Function { identifier, func } => {
                 environment.subscribe(identifier, EnvironmentItem::Func(Rc::clone(func)))

@@ -33,7 +33,7 @@ impl<'a> Func<'a> {
         &'a self,
         argument_input: &'a Vec<ArgumentType<'a>>,
         environment: &Environment<'a>,
-    ) -> Result<Environment<'a>> {
+    ) -> Result<(Environment<'a>, Primitive)> {
         //only do 1 comparison here if it works
         //todo: Move it to the compilation process
         if self.argument.len() != argument_input.len() {
@@ -52,13 +52,15 @@ impl<'a> Func<'a> {
                 }
                 ArgumentType::Ref(_) => {}
                 ArgumentType::Expr(val) => {
-                    let expr_val = val.evaluation(&environment)?;
-                    func_environment = func_environment
-                        .subscribe(self.argument[i], EnvironmentItem::Primitive(expr_val))?;
+                    let (env, expr_val) = val.execute(func_environment)?;
+                    func_environment =
+                        env.subscribe(self.argument[i], EnvironmentItem::Primitive(expr_val))?;
                 }
             }
         }
-        self.scope.execute(func_environment)
+        self.scope
+            .execute(func_environment)
+            .map(|v| (v, Primitive::void()))
     }
 }
 
@@ -76,12 +78,13 @@ impl<'a> FunctionCall<'a> {
             argument_input,
         }
     }
-    pub fn execute(&'a self, environment: Environment<'a>) -> Result<Environment> {
-        let func = match environment.get_var(&self.identifier)? {
+    pub fn execute(&'a self, environment: Environment<'a>) -> Result<(Environment<'a>, Primitive)> {
+        let v = environment.get_var(&self.identifier)?;
+        let func = match v.1.as_ref() {
             EnvironmentItem::Func(v) => v,
             _ => Err(anyhow!("{} is not a function", self.identifier))?,
         };
-        func.execute(&self.argument_input, &environment)?;
-        Ok(environment)
+        let (_, val) = func.execute(&self.argument_input, &v.0)?;
+        Ok((v.0, val))
     }
 }

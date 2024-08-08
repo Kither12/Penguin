@@ -53,6 +53,13 @@ fn pratt_parser() -> &'static PrattParser<Rule> {
 fn parse_expr(pairs: Pairs<Rule>) -> Result<Expression> {
     pratt_parser()
         .map_primary(|primary| match primary.as_rule() {
+            Rule::function_call => {
+                parse_function_call(primary.into_inner().borrow_mut()).map(|v| {
+                    Expression::Literal {
+                        lhs: ExprAtom::FunctionCall(v),
+                    }
+                })
+            }
             Rule::integer => Ok(Expression::Literal {
                 lhs: ExprAtom::Primitive(Primitive::Integer(primary.as_str().parse::<i64>()?)),
             }),
@@ -245,8 +252,6 @@ pub fn parse_ast(code: &str) -> Result<ASTNode> {
                     .and_then(|v| Ok(ASTNode::IfElse(v))),
                 Rule::while_loop => parse_while_loop(pair.into_inner().borrow_mut())
                     .and_then(|v| Ok(ASTNode::WhileLoop(v))),
-                Rule::function_call => parse_function_call(pair.into_inner().borrow_mut())
-                    .and_then(|v| Ok(ASTNode::FunctionCall(v))),
                 _ => unreachable!(),
             })
             .collect::<Result<Vec<ASTNode>>>()?,

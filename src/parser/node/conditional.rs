@@ -21,13 +21,14 @@ impl<'a> IfElse<'a> {
     }
     pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment> {
         for (expr, scope) in self.if_clause.iter() {
-            let expr_val = expr
-                .evaluation(&environment)
+            let (env, expr_val) = expr
+                .execute(environment)
                 .context("Failed to evaluate expression")?;
             if expr_val.as_bool()? {
-                environment = scope.execute(environment)?;
+                environment = scope.execute(env)?;
                 return Ok(environment);
             }
+            environment = env;
         }
         if let Some(scope) = &self.else_clause {
             environment = scope.execute(environment)?;

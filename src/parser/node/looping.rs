@@ -14,12 +14,12 @@ impl<'a> WhileLoop<'a> {
     pub fn new(expr: Expression<'a>, scope: Scope<'a>) -> Self {
         WhileLoop { expr, scope }
     }
-    pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment<'a>> {
-        let mut expr_val = self.expr.evaluation(&environment)?;
+    pub fn execute(&'a self, environment: Environment<'a>) -> Result<Environment<'a>> {
+        let (mut env, mut expr_val) = self.expr.execute(environment)?;
         while expr_val.as_bool()? {
-            environment = self.scope.execute(environment)?;
-            expr_val = self.expr.evaluation(&environment)?;
+            env = self.scope.execute(env)?;
+            (env, expr_val) = self.expr.execute(env)?;
         }
-        Ok(environment)
+        Ok(env)
     }
 }

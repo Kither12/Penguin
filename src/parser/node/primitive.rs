@@ -9,6 +9,9 @@ pub enum Primitive {
     Boolean(bool),
 }
 impl Primitive {
+    pub fn void() -> Self {
+        Primitive::Integer(0)
+    }
     pub fn as_int(&self) -> Result<i64> {
         match self {
             Primitive::Boolean(v) => Ok(*v as i64),

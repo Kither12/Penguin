@@ -42,7 +42,7 @@ unary_operator  = _{ neg_op | pos_op | opp_op | bit_not }
 terminate       = _{ ";" }
 
 expr    =  { atom ~ ws ~ (operator ~ ws ~ atom ~ ws)* }
-primary = _{ integer | identifier | boolean | ("(" ~ ws ~ expr ~ ws ~ ")") }
+primary = _{ function_call | integer | identifier | boolean | ("(" ~ ws ~ expr ~ ws ~ ")") }
 atom    = _{ (unary_operator ~ ws)* ~ primary }
 
 identifier = { !keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
@@ -50,7 +50,7 @@ identifier = { !keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 declaration = { "gimme" ~ ws ~ identifier ~ ws ~ "=" ~ ws ~ (function_declaration | expr) }
 assignment  = { identifier ~ ws ~ assign_operator ~ ws ~ expr }
 
-line  = _{ ((function_call | assignment | declaration | expr) ~ ws ~ terminate) | ifelse | while_loop | scope }
+line  = _{ ((assignment | declaration | expr) ~ ws ~ terminate) | ifelse | while_loop | scope }
 scope =  { "{" ~ (ws ~ line)* ~ ws ~ "}" }
 code  =  { ws ~ (line ~ ws)* ~ eoi }
 

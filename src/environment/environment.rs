@@ -32,7 +32,7 @@ pub enum EnvironmentItem<'a> {
 pub struct Environment<'a> {
     scope_depth: usize,
     scope_stack: Vec<(&'a str, usize)>,
-    variable_mp: FxHashMap<&'a str, Vec<(EnvironmentItem<'a>, usize)>>,
+    variable_mp: FxHashMap<&'a str, Vec<(Rc<EnvironmentItem<'a>>, usize)>>,
 }
 
 impl<'a> Clone for Environment<'a> {
@@ -65,21 +65,23 @@ impl<'a> Environment<'a> {
                     )));
                 }
             }
-            var_stack.push((value, self.scope_depth));
+            var_stack.push((Rc::new(value), self.scope_depth));
         } else {
             let mut val = Vec::with_capacity(64);
-            val.push((value, self.scope_depth));
+            val.push((Rc::new(value), self.scope_depth));
             self.variable_mp.insert(identifier, val);
         }
         self.scope_stack.push((identifier, self.scope_depth));
         Ok(self)
     }
-    pub fn get_var(&self, identifier: &'a str) -> Result<&EnvironmentItem> {
-        self.variable_mp
+    pub fn get_var(self, identifier: &'a str) -> Result<(Self, Rc<EnvironmentItem>)> {
+        let x = self
+            .variable_mp
             .get(identifier)
             .and_then(|val| val.last())
-            .map(|(v, _)| v)
-            .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))
+            .map(|(v, _)| Rc::clone(v))
+            .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))?;
+        Ok((self, x))
     }
     pub fn assign_var(mut self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<Self> {
         *self
@@ -88,7 +90,7 @@ impl<'a> Environment<'a> {
             .and_then(|val| val.last_mut())
             .map(|(v, _)| v)
             .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))? =
-            value;
+            Rc::new(value);
         Ok(self)
     }
     pub fn open_scope(mut self) -> Self {

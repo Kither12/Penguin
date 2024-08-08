@@ -6,19 +6,20 @@ pub mod environment;
 pub mod error;
 pub mod parser;
 
+use std::sync::{Mutex, OnceLock};
+
 pub fn run_code(code: &str) -> Result<()> {
     let ast_root = parse_ast(code)?;
     let mut environment = Environment::default();
     if let ASTNode::Scope(v) = ast_root {
         for node in v.code.iter() {
             match node {
-                ASTNode::Expr(v) => println!("{:?}", v.evaluation(&environment)?),
+                ASTNode::Expr(v) => environment = v.execute(environment)?.0,
                 ASTNode::Declaration(v) => environment = v.execute(environment)?,
                 ASTNode::Assignment(v) => environment = v.execute(environment)?,
                 ASTNode::Scope(v) => environment = v.execute(environment)?,
                 ASTNode::IfElse(v) => environment = v.execute(environment)?,
                 ASTNode::WhileLoop(v) => environment = v.execute(environment)?,
-                ASTNode::FunctionCall(v) => environment = v.execute(environment)?,
             }
         }
     }
@@ -205,5 +206,43 @@ mod tests {
             ",
         );
         assert!(res.is_err());
+    }
+    #[test]
+    fn function_local_variable_should_drop() {
+        let res = run_code(
+            "
+                gimme a = (a) => {
+                    gimme b = 4;
+                    b;
+                };
+                a(2);
+                b;
+            ",
+        );
+        assert!(res.is_err());
+    }
+    #[test]
+    fn function_use_outside_variable_should_work() {
+        let res = run_code(
+            "   
+                gimme c = 5;
+                gimme a = (a) => {
+                    c;
+                };
+                c;
+                a(2);
+            ",
+        );
+        assert!(res.is_ok());
+    }
+    #[test]
+    fn function_use_in_expr_should_work() {
+        let res = run_code(
+            "   
+                gimme a = (a) => {};
+                2 + a(2);
+            ",
+        );
+        assert!(res.is_ok());
     }
 }
