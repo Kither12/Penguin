@@ -14,4 +14,7 @@ pub enum ASTNode<'a> {
     Assignment(Assignment<'a>),
     IfElse(IfElse<'a>),
     WhileLoop(WhileLoop<'a>),
+    BreakStatement,
+    ReturnStatement,
+    ContinueStatement,
 }

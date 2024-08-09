@@ -1,6 +1,9 @@
 use crate::environment::environment::Environment;
 
-use super::{expression::Expression, scope::Scope};
+use super::{
+    expression::Expression,
+    scope::{FlowStatement, Scope},
+};
 use anyhow::{Context, Result};
 
 #[derive(Debug)]
@@ -19,20 +22,24 @@ impl<'a> IfElse<'a> {
             else_clause,
         }
     }
-    pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment> {
+    pub fn execute(
+        &'a self,
+        mut environment: Environment<'a>,
+    ) -> Result<(Environment, Option<FlowStatement>)> {
+        let mut flow_statement: Option<FlowStatement> = None;
         for (expr, scope) in self.if_clause.iter() {
             let (env, expr_val) = expr
                 .execute(environment)
                 .context("Failed to evaluate expression")?;
             if expr_val.as_bool()? {
-                environment = scope.execute(env)?;
-                return Ok(environment);
+                (environment, flow_statement) = scope.execute(env)?;
+                return Ok((environment, flow_statement));
             }
             environment = env;
         }
         if let Some(scope) = &self.else_clause {
-            environment = scope.execute(environment)?;
+            (environment, flow_statement) = scope.execute(environment)?;
         }
-        Ok(environment)
+        Ok((environment, flow_statement))
     }
 }

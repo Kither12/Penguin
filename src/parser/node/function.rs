@@ -3,7 +3,11 @@ use std::{env, rc::Rc, thread::scope};
 use crate::environment::environment::{Environment, EnvironmentItem};
 use anyhow::{anyhow, Ok, Result};
 
-use super::{expression::Expression, primitive::Primitive, scope::Scope};
+use super::{
+    expression::Expression,
+    primitive::Primitive,
+    scope::{FlowStatement, Scope, ScopeError},
+};
 
 #[derive(Debug)]
 pub enum ArgumentType<'a> {
@@ -58,9 +62,15 @@ impl<'a> Func<'a> {
                 }
             }
         }
-        self.scope
-            .execute(func_environment)
-            .map(|v| (v, Primitive::void()))
+        let mut flow_statement: Option<FlowStatement> = None;
+
+        (func_environment, flow_statement) = self.scope.execute(func_environment)?;
+        match flow_statement {
+            Some(FlowStatement::Break) => Err(anyhow!(ScopeError::BreakOutsideLoop))?,
+            Some(FlowStatement::Continue) => Err(anyhow!(ScopeError::ContinueOutsideLoop))?,
+            _ => {}
+        };
+        Ok((func_environment, Primitive::void()))
     }
 }
 
