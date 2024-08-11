@@ -54,6 +54,7 @@ impl<'a> Scope<'a> {
                 ASTNode::Scope(v) => (environment, flow_statement) = v.execute(environment)?,
                 ASTNode::IfElse(v) => (environment, flow_statement) = v.execute(environment)?,
                 ASTNode::WhileLoop(v) => (environment, flow_statement) = v.execute(environment)?,
+                ASTNode::Output(v) => environment = v.execute(environment)?,
                 ASTNode::BreakStatement => {
                     flow_statement = Some(FlowStatement::Break);
                 }

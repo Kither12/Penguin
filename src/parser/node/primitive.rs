@@ -1,5 +1,6 @@
 use anyhow::Result;
 use core::fmt::Debug;
+use std::fmt;
 
 use super::expression::OpType;
 
@@ -8,6 +9,16 @@ pub enum Primitive {
     Integer(i64),
     Boolean(bool),
 }
+
+impl fmt::Display for Primitive {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Primitive::Boolean(v) => write!(f, "{}", v),
+            Primitive::Integer(v) => write!(f, "{}", v),
+        }
+    }
+}
+
 impl Primitive {
     pub fn void() -> Self {
         Primitive::Integer(0)

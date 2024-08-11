@@ -1,5 +1,3 @@
-use std::{env, rc::Rc, thread::scope};
-
 use crate::environment::environment::{Environment, EnvironmentItem};
 use anyhow::{anyhow, Ok, Result};
 
@@ -19,19 +17,12 @@ pub enum ArgumentType<'a> {
 #[derive(Debug)]
 pub struct Func<'a> {
     argument: Vec<&'a str>,
-    inside_environment: Environment<'a>,
     scope: Scope<'a>,
-    rt_val: Option<Primitive>,
 }
 
 impl<'a> Func<'a> {
-    pub fn new(argument: Vec<&'a str>, scope: Scope<'a>, rt_val: Option<Primitive>) -> Self {
-        Self {
-            argument,
-            inside_environment: Environment::default(),
-            scope,
-            rt_val,
-        }
+    pub fn new(argument: Vec<&'a str>, scope: Scope<'a>) -> Self {
+        Self { argument, scope }
     }
     pub fn execute(
         &'a self,
@@ -62,7 +53,7 @@ impl<'a> Func<'a> {
                 }
             }
         }
-        let mut flow_statement: Option<FlowStatement> = None;
+        let flow_statement: Option<FlowStatement>;
 
         (func_environment, flow_statement) = self.scope.execute(func_environment)?;
         match flow_statement {

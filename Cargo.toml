@@ -3,8 +3,6 @@ name = "penguin"
 version = "0.1.0"
 edition = "2021"
 
-[dev-dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [[bench]]
 name = "benchmark"
@@ -15,6 +13,10 @@ debug = 1
 
 [features]
 dhat-heap = []
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+gag = "1.0.0"
 
 [dependencies]
 dhat = "0.3.3"
