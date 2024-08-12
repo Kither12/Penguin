@@ -54,14 +54,15 @@ impl<'a> Func<'a> {
             }
         }
         let flow_statement: Option<FlowStatement>;
-
+        let mut rt_val = Primitive::void();
         (func_environment, flow_statement) = self.scope.execute(func_environment)?;
         match flow_statement {
             Some(FlowStatement::Break) => Err(anyhow!(ScopeError::BreakOutsideLoop))?,
             Some(FlowStatement::Continue) => Err(anyhow!(ScopeError::ContinueOutsideLoop))?,
-            _ => {}
+            Some(FlowStatement::Return(v)) => rt_val = v,
+            None => {}
         };
-        Ok((func_environment, Primitive::void()))
+        Ok((func_environment, rt_val))
     }
 }
 

@@ -29,8 +29,8 @@ impl<'a> WhileLoop<'a> {
             if let Some(flow) = v.1 {
                 match flow {
                     FlowStatement::Break => break,
-                    FlowStatement::Return => {
-                        flow_statement = Some(FlowStatement::Return);
+                    FlowStatement::Return(v) => {
+                        flow_statement = Some(FlowStatement::Return(v));
                         break;
                     }
                     FlowStatement::Continue => {}

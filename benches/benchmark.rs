@@ -1,18 +1,15 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use penguin::run_code;
+use std::fs;
 
-pub fn parse_expression_bench(c: &mut Criterion) {
-    c.bench_function("parse expression", |b| {
-        b.iter(|| {
-            run_code(black_box(
-                "gimme a = 2 + 2;
-        2 + 2 * a - 3;
-        a = -10;
-        2 + 2 * a - 3;",
-            ))
-        })
-    });
+pub fn bench_1(c: &mut Criterion) {
+    let code: String = fs::read_to_string("examples/prime.pn").unwrap();
+    c.bench_function("bench_1", |b| b.iter(|| run_code(black_box(&code))));
+}
+pub fn bench_2(c: &mut Criterion) {
+    let code: String = fs::read_to_string("examples/sum.pn").unwrap();
+    c.bench_function("bench_2", |b| b.iter(|| run_code(black_box(&code))));
 }
 
-criterion_group!(benches, parse_expression_bench);
+criterion_group!(benches, bench_1, bench_2);
 criterion_main!(benches);

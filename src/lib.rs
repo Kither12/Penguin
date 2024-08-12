@@ -2,7 +2,10 @@ use anyhow::{anyhow, Result};
 use environment::environment::Environment;
 use parser::{
     ast::ASTNode,
-    node::scope::{FlowStatement, ScopeError},
+    node::{
+        primitive::Primitive,
+        scope::{FlowStatement, ScopeError},
+    },
     parser::parse_ast,
 };
 
@@ -25,12 +28,15 @@ pub fn run_code(code: &str) -> Result<()> {
                 ASTNode::WhileLoop(v) => (environment, flow_statement) = v.execute(environment)?,
                 ASTNode::Output(v) => environment = v.execute(environment)?,
                 ASTNode::BreakStatement => flow_statement = Some(FlowStatement::Break),
-                ASTNode::ReturnStatement => flow_statement = Some(FlowStatement::Return),
+                ASTNode::ReturnStatement(_) => {
+                    //flow statement here is only for error reporting so don't need to evaluate the expr inside it
+                    flow_statement = Some(FlowStatement::Return(Primitive::void()))
+                }
                 ASTNode::ContinueStatement => flow_statement = Some(FlowStatement::Continue),
             }
             match flow_statement {
                 Some(FlowStatement::Break) => Err(anyhow!(ScopeError::BreakOutsideLoop))?,
-                Some(FlowStatement::Return) => Err(anyhow!(ScopeError::ReturnOutsideFunction))?,
+                Some(FlowStatement::Return(_)) => Err(anyhow!(ScopeError::ReturnOutsideFunction))?,
                 Some(FlowStatement::Continue) => Err(anyhow!(ScopeError::ContinueOutsideLoop))?,
                 None => {}
             };

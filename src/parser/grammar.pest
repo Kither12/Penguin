@@ -50,7 +50,7 @@ identifier = { !keyword ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 declaration = { "gimme" ~ ws ~ identifier ~ ws ~ "=" ~ ws ~ (function_declaration | expr) }
 assignment  = { identifier ~ ws ~ assign_operator ~ ws ~ expr }
 
-line  = _{ ((print_statement | assignment | declaration | expr | return_statement) ~ ws ~ terminate) | ifelse | while_loop | scope }
+line  = _{ ((print_statement | assignment | declaration | expr | return_statement | break_statement | continue_statement) ~ ws ~ terminate) | ifelse | while_loop | scope }
 scope =  { "{" ~ (ws ~ line)* ~ ws ~ "}" }
 code  =  { ws ~ (line ~ ws)* ~ eoi }
 
@@ -65,11 +65,13 @@ function_declaration = { "(" ~ (ws ~ identifier ~ (ws ~ "," ~ ws ~ identifier)*)
 function_call        = { identifier ~ "(" ~ (ws ~ (function_declaration | expr | ref_var) ~ (ws ~ "," ~ ws ~ (function_declaration | expr | ref_var))*)? ~ ws ~ ")" }
 ref_var              = { "&" ~ identifier }
 
-return_statement = { "return" ~ ws ~ expr }
+return_statement   = { "return" ~ ws ~ expr }
+break_statement    = { "break" }
+continue_statement = { "continue" }
 
 print   = { "print" }
 println = { "println" }
 
 print_statement = { (println | print) ~ "(" ~ ws ~ expr ~ ws ~ ")" }
 
-keyword = _{ "println" | "print" | "gimme" | "true" | "false" | "if" | "elif" | "else" | "return" }
+keyword = _{ "println" | "print" | "gimme" | "true" | "false" | "if" | "elif" | "else" | "return" | "break" | "continue"}

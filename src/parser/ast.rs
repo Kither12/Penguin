@@ -17,6 +17,6 @@ pub enum ASTNode<'a> {
     IfElse(IfElse<'a>),
     WhileLoop(WhileLoop<'a>),
     BreakStatement,
-    ReturnStatement,
+    ReturnStatement(Expression<'a>),
     ContinueStatement,
 }

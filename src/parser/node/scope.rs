@@ -1,6 +1,8 @@
 use crate::{environment::environment::Environment, parser::ast::ASTNode};
 use anyhow::Result;
 
+use super::primitive::Primitive;
+
 #[derive(Debug)]
 pub struct Scope<'a> {
     pub code: Vec<ASTNode<'a>>,
@@ -13,11 +15,10 @@ pub enum ScopeError {
     BreakOutsideLoop,
 }
 
-#[derive(PartialEq, Eq)]
 pub enum FlowStatement {
     Continue,
     Break,
-    Return,
+    Return(Primitive),
 }
 
 impl std::fmt::Display for ScopeError {
@@ -55,14 +56,12 @@ impl<'a> Scope<'a> {
                 ASTNode::IfElse(v) => (environment, flow_statement) = v.execute(environment)?,
                 ASTNode::WhileLoop(v) => (environment, flow_statement) = v.execute(environment)?,
                 ASTNode::Output(v) => environment = v.execute(environment)?,
-                ASTNode::BreakStatement => {
-                    flow_statement = Some(FlowStatement::Break);
-                }
-                ASTNode::ContinueStatement => {
-                    flow_statement = Some(FlowStatement::Continue);
-                }
-                ASTNode::ReturnStatement => {
-                    flow_statement = Some(FlowStatement::Return);
+                ASTNode::BreakStatement => flow_statement = Some(FlowStatement::Break),
+                ASTNode::ContinueStatement => flow_statement = Some(FlowStatement::Continue),
+                ASTNode::ReturnStatement(v) => {
+                    let prim_value;
+                    (environment, prim_value) = v.execute(environment)?;
+                    flow_statement = Some(FlowStatement::Return(prim_value));
                 }
             }
             if flow_statement.is_some() {

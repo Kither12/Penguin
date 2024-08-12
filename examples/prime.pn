@@ -1,0 +1,14 @@
+gimme is_prime = (k) => {
+    if k < 2{
+        return false;
+    }
+    gimme i = 2;
+    while i * i <= k{
+        if k % i == 0{
+            return false;
+        }
+        i += 1;
+    }
+    return true;
+};
+is_prime(1000000007);
