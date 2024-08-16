@@ -51,16 +51,16 @@ pub enum Expression<'a> {
 }
 
 impl<'a> Expression<'a> {
-    pub fn execute(&self, environment: Environment<'a>) -> Result<(Environment, Primitive)> {
+    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Primitive> {
         match self {
             Expression::Literal { lhs } => match lhs {
-                ExprAtom::Primitive(val) => Ok((environment, *val)),
+                ExprAtom::Primitive(val) => Ok(*val),
 
                 ExprAtom::FunctionCall(val) => val.execute(environment),
                 ExprAtom::Identifier(val) => {
                     let v = environment.get_var(val)?;
-                    match v.1.as_ref() {
-                        EnvironmentItem::Primitive(val) => Ok((v.0, *val)),
+                    match v {
+                        EnvironmentItem::Primitive(val) => Ok(val),
                         EnvironmentItem::Func(_) => Err(anyhow!(
                             "{} is a function pointer, cannot use in arithmetic",
                             val
@@ -69,30 +69,30 @@ impl<'a> Expression<'a> {
                 }
             },
             Expression::Unary { lhs, op } => {
-                let (env, lhs_val) = lhs.execute(environment)?;
-                Ok((env, lhs_val.evaluate_unary(op)?))
+                let lhs_val = lhs.execute(environment)?;
+                Ok(lhs_val.evaluate_unary(op)?)
             }
             Expression::Binary { lhs, op, rhs } => match op {
                 OpType::And => {
-                    let (env, lhs_val) = lhs.execute(environment)?;
+                    let lhs_val = lhs.execute(environment)?;
                     if lhs_val.as_bool()? == false {
-                        return Ok((env, lhs_val));
+                        return Ok(lhs_val);
                     }
-                    let (env, rhs_val) = rhs.execute(env)?;
-                    Ok((env, lhs_val.evaluate_primary(&rhs_val, op)?))
+                    let rhs_val = rhs.execute(environment)?;
+                    Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
                 OpType::Or => {
-                    let (env, lhs_val) = lhs.execute(environment)?;
+                    let lhs_val = lhs.execute(environment)?;
                     if lhs_val.as_bool()? == true {
-                        return Ok((env, lhs_val));
+                        return Ok(lhs_val);
                     }
-                    let (env, rhs_val) = rhs.execute(env)?;
-                    Ok((env, lhs_val.evaluate_primary(&rhs_val, op)?))
+                    let rhs_val = rhs.execute(environment)?;
+                    Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
                 _ => {
-                    let (env, lhs_val) = lhs.execute(environment)?;
-                    let (env, rhs_val) = rhs.execute(env)?;
-                    Ok((env, lhs_val.evaluate_primary(&rhs_val, op)?))
+                    let lhs_val = lhs.execute(environment)?;
+                    let rhs_val = rhs.execute(environment)?;
+                    Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
             },
         }

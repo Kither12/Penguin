@@ -1,8 +1,11 @@
 extern crate fxhash;
 
-use std::rc::Rc;
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Ok, Result};
 
 use fxhash::FxHashMap;
 
@@ -30,83 +33,72 @@ pub enum EnvironmentItem<'a> {
 
 #[derive(Debug, Default)]
 pub struct Environment<'a> {
-    scope_depth: usize,
-    scope_stack: Vec<(&'a str, usize)>,
-    variable_mp: FxHashMap<&'a str, Vec<(Rc<EnvironmentItem<'a>>, usize)>>,
-}
-
-impl<'a> Clone for Environment<'a> {
-    fn clone(&self) -> Self {
-        // When cloning, we only care about the value in the latest scope
-        let mut variable_mp = FxHashMap::default();
-        for (k, v) in &self.variable_mp {
-            if let Some((identifier, _)) = v.last() {
-                let mut val = Vec::with_capacity(64);
-                val.push((identifier.clone(), 0usize));
-                variable_mp.insert(*k, val);
-            }
-        }
-
-        Self {
-            scope_depth: 0,
-            scope_stack: Vec::default(),
-            variable_mp: variable_mp,
-        }
-    }
+    scope_depth: Cell<usize>,
+    scope_stack: RefCell<Vec<(&'a str, usize)>>,
+    variable_mp: RefCell<FxHashMap<&'a str, Vec<(EnvironmentItem<'a>, usize)>>>,
 }
 
 impl<'a> Environment<'a> {
-    pub fn subscribe(mut self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<Self> {
-        if let Some(var_stack) = self.variable_mp.get_mut(identifier) {
+    pub fn subscribe(&self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<()> {
+        if let Some(var_stack) = self.variable_mp.borrow_mut().get_mut(identifier) {
             if let Some((_, depth)) = var_stack.last() {
-                if *depth == self.scope_depth {
+                if *depth == self.scope_depth.get() {
                     return Err(anyhow!(EnvironmentError::ReDeclaration(
                         identifier.to_owned()
                     )));
                 }
             }
-            var_stack.push((Rc::new(value), self.scope_depth));
-        } else {
-            let mut val = Vec::with_capacity(64);
-            val.push((Rc::new(value), self.scope_depth));
-            self.variable_mp.insert(identifier, val);
+            var_stack.push((value, self.scope_depth.get()));
+            self.scope_stack
+                .borrow_mut()
+                .push((identifier, self.scope_depth.get()));
+            return Ok(());
         }
-        self.scope_stack.push((identifier, self.scope_depth));
-        Ok(self)
+        let mut val = Vec::with_capacity(64);
+        val.push((value, self.scope_depth.get()));
+        self.variable_mp.borrow_mut().insert(identifier, val);
+        self.scope_stack
+            .borrow_mut()
+            .push((identifier, self.scope_depth.get()));
+        Ok(())
     }
-    pub fn get_var(self, identifier: &'a str) -> Result<(Self, Rc<EnvironmentItem>)> {
+    pub fn get_var(&self, identifier: &'a str) -> Result<EnvironmentItem> {
         let x = self
             .variable_mp
+            .borrow()
             .get(identifier)
             .and_then(|val| val.last())
-            .map(|(v, _)| Rc::clone(v))
+            .map(|(v, _)| v.clone())
             .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))?;
-        Ok((self, x))
+        Ok(x)
     }
-    pub fn assign_var(mut self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<Self> {
+    pub fn assign_var(&self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<()> {
         *self
             .variable_mp
+            .borrow_mut()
             .get_mut(identifier)
             .and_then(|val| val.last_mut())
             .map(|(v, _)| v)
             .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))? =
-            Rc::new(value);
-        Ok(self)
+            value;
+        Ok(())
     }
-    pub fn open_scope(mut self) -> Self {
-        self.scope_depth += 1;
-        self
+    pub fn open_scope(&self) {
+        self.scope_depth.set(self.scope_depth.get() + 1);
     }
-    pub fn close_scope(mut self) -> Self {
-        while let Some((key, depth)) = self.scope_stack.last() {
-            if *depth == self.scope_depth {
-                self.variable_mp.get_mut(key).and_then(|v| v.pop());
-                self.scope_stack.pop();
+    pub fn close_scope(&self) {
+        let mut st = self.scope_stack.borrow_mut();
+        while let Some((key, depth)) = st.last() {
+            if *depth == self.scope_depth.get() {
+                self.variable_mp
+                    .borrow_mut()
+                    .get_mut(key)
+                    .and_then(|v| v.pop());
+                st.pop();
             } else {
                 break;
             }
         }
-        self.scope_depth -= 1;
-        self
+        self.scope_depth.set(self.scope_depth.get() - 1);
     }
 }

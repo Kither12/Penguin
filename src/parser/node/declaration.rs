@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use anyhow::Result;
 
 use crate::environment::environment::Environment;
@@ -33,38 +34,32 @@ impl<'a> Assignment<'a> {
             expr: expr,
         }
     }
-    pub fn execute(&'a self, mut environment: Environment<'a>) -> Result<Environment> {
+    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<()> {
         let var = environment.get_var(&self.identifier)?;
-        environment = var.0;
-        let val = match var.1.as_ref() {
+        let val = match var {
             EnvironmentItem::Primitive(val) => val,
             EnvironmentItem::Func(val) => todo!(),
         };
         let expr_val = match self.op {
             AssignOperation::AssignAdd => {
                 let v = self.expr.execute(environment)?;
-                environment = v.0;
-                v.1.evaluate_primary(val, &OpType::Add)
+                v.evaluate_primary(&val, &OpType::Add)
             }
             AssignOperation::AssignSub => {
                 let v = self.expr.execute(environment)?;
-                environment = v.0;
-                v.1.evaluate_primary(val, &OpType::Sub)
+                v.evaluate_primary(&val, &OpType::Sub)
             }
             AssignOperation::AssignMul => {
                 let v = self.expr.execute(environment)?;
-                environment = v.0;
-                v.1.evaluate_primary(val, &OpType::Mul)
+                v.evaluate_primary(&val, &OpType::Mul)
             }
             AssignOperation::AssignDiv => {
                 let v = self.expr.execute(environment)?;
-                environment = v.0;
-                v.1.evaluate_primary(val, &OpType::Div)
+                v.evaluate_primary(&val, &OpType::Div)
             }
             AssignOperation::AssignOp => {
                 let v = self.expr.execute(environment)?;
-                environment = v.0;
-                Ok(v.1)
+                Ok(v)
             }
         }?;
         environment.assign_var(self.identifier, EnvironmentItem::Primitive(expr_val))
@@ -83,11 +78,11 @@ pub enum Declaration<'a> {
     },
 }
 impl<'a> Declaration<'a> {
-    pub fn execute(&self, environment: Environment<'a>) -> Result<Environment> {
+    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<()> {
         match self {
             Self::Expression { identifier, expr } => {
-                let (env, expr_val) = expr.execute(environment)?;
-                env.subscribe(identifier, EnvironmentItem::Primitive(expr_val))
+                let expr_val = expr.execute(environment)?;
+                environment.subscribe(identifier, EnvironmentItem::Primitive(expr_val))
             }
             Self::Function { identifier, func } => {
                 environment.subscribe(identifier, EnvironmentItem::Func(Rc::clone(func)))

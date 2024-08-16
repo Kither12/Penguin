@@ -22,24 +22,20 @@ impl<'a> IfElse<'a> {
             else_clause,
         }
     }
-    pub fn execute(
-        &'a self,
-        mut environment: Environment<'a>,
-    ) -> Result<(Environment, Option<FlowStatement>)> {
+    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Option<FlowStatement>> {
         let mut flow_statement: Option<FlowStatement> = None;
         for (expr, scope) in self.if_clause.iter() {
-            let (env, expr_val) = expr
+            let expr_val = expr
                 .execute(environment)
                 .context("Failed to evaluate expression")?;
             if expr_val.as_bool()? {
-                (environment, flow_statement) = scope.execute(env)?;
-                return Ok((environment, flow_statement));
+                flow_statement = scope.execute(environment)?;
+                return Ok(flow_statement);
             }
-            environment = env;
         }
         if let Some(scope) = &self.else_clause {
-            (environment, flow_statement) = scope.execute(environment)?;
+            flow_statement = scope.execute(environment)?;
         }
-        Ok((environment, flow_statement))
+        Ok(flow_statement)
     }
 }

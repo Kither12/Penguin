@@ -41,26 +41,22 @@ impl<'a> Scope<'a> {
     pub fn new(code: Vec<ASTNode<'a>>) -> Self {
         Scope { code }
     }
-    pub fn execute(
-        &'a self,
-        mut environment: Environment<'a>,
-    ) -> Result<(Environment, Option<FlowStatement>)> {
-        environment = environment.open_scope();
+    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Option<FlowStatement>> {
+        environment.open_scope();
         let mut flow_statement: Option<FlowStatement> = None;
         for node in self.code.iter() {
             match node {
-                ASTNode::Expr(v) => environment = v.execute(environment)?.0,
-                ASTNode::Declaration(v) => environment = v.execute(environment)?,
-                ASTNode::Assignment(v) => environment = v.execute(environment)?,
-                ASTNode::Scope(v) => (environment, flow_statement) = v.execute(environment)?,
-                ASTNode::IfElse(v) => (environment, flow_statement) = v.execute(environment)?,
-                ASTNode::WhileLoop(v) => (environment, flow_statement) = v.execute(environment)?,
-                ASTNode::Output(v) => environment = v.execute(environment)?,
+                ASTNode::Expr(v) => v.execute(environment).map(|_| ())?,
+                ASTNode::Declaration(v) => v.execute(environment)?,
+                ASTNode::Assignment(v) => v.execute(environment)?,
+                ASTNode::Scope(v) => flow_statement = v.execute(environment)?,
+                ASTNode::IfElse(v) => flow_statement = v.execute(environment)?,
+                ASTNode::WhileLoop(v) => flow_statement = v.execute(environment)?,
+                ASTNode::Output(v) => v.execute(environment)?,
                 ASTNode::BreakStatement => flow_statement = Some(FlowStatement::Break),
                 ASTNode::ContinueStatement => flow_statement = Some(FlowStatement::Continue),
                 ASTNode::ReturnStatement(v) => {
-                    let prim_value;
-                    (environment, prim_value) = v.execute(environment)?;
+                    let prim_value = v.execute(environment)?;
                     flow_statement = Some(FlowStatement::Return(prim_value));
                 }
             }
@@ -68,8 +64,8 @@ impl<'a> Scope<'a> {
                 break;
             }
         }
-        environment = environment.close_scope();
+        environment.close_scope();
 
-        Ok((environment, flow_statement))
+        Ok(flow_statement)
     }
 }

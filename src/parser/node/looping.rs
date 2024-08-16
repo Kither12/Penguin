@@ -17,16 +17,12 @@ impl<'a> WhileLoop<'a> {
     pub fn new(expr: Expression<'a>, scope: Scope<'a>) -> Self {
         WhileLoop { expr, scope }
     }
-    pub fn execute(
-        &'a self,
-        environment: Environment<'a>,
-    ) -> Result<(Environment<'a>, Option<FlowStatement>)> {
-        let (mut env, mut expr_val) = self.expr.execute(environment)?;
+    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Option<FlowStatement>> {
+        let mut expr_val = self.expr.execute(environment)?;
         let mut flow_statement: Option<FlowStatement> = None;
         while expr_val.as_bool()? {
-            let v = self.scope.execute(env)?;
-            env = v.0;
-            if let Some(flow) = v.1 {
+            let v = self.scope.execute(environment)?;
+            if let Some(flow) = v {
                 match flow {
                     FlowStatement::Break => break,
                     FlowStatement::Return(v) => {
@@ -36,8 +32,8 @@ impl<'a> WhileLoop<'a> {
                     FlowStatement::Continue => {}
                 }
             }
-            (env, expr_val) = self.expr.execute(env)?;
+            expr_val = self.expr.execute(environment)?;
         }
-        Ok((env, flow_statement))
+        Ok(flow_statement)
     }
 }

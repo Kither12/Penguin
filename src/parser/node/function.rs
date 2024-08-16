@@ -27,7 +27,6 @@ impl<'a> Func<'a> {
     pub fn execute(
         &'a self,
         argument_input: &'a Vec<ArgumentType<'a>>,
-        environment: &Environment<'a>,
     ) -> Result<(Environment<'a>, Primitive)> {
         //only do 1 comparison here if it works
         //todo: Move it to the compilation process
@@ -38,8 +37,8 @@ impl<'a> Func<'a> {
             return Err(anyhow!("too few arguments in function call"));
         }
 
-        let mut func_environment = environment.clone();
-        func_environment = func_environment.open_scope();
+        let func_environment = Environment::default();
+        func_environment.open_scope();
         for (i, v) in argument_input.into_iter().enumerate() {
             match v {
                 ArgumentType::Func(val) => {
@@ -47,15 +46,15 @@ impl<'a> Func<'a> {
                 }
                 ArgumentType::Ref(_) => {}
                 ArgumentType::Expr(val) => {
-                    let (env, expr_val) = val.execute(func_environment)?;
-                    func_environment =
-                        env.subscribe(self.argument[i], EnvironmentItem::Primitive(expr_val))?;
+                    let expr_val = val.execute(&func_environment)?;
+                    func_environment
+                        .subscribe(self.argument[i], EnvironmentItem::Primitive(expr_val))?;
                 }
             }
         }
         let flow_statement: Option<FlowStatement>;
-        let mut rt_val = Primitive::void();
-        (func_environment, flow_statement) = self.scope.execute(func_environment)?;
+        let mut rt_val = Primitive::VOID;
+        flow_statement = self.scope.execute(&func_environment)?;
         match flow_statement {
             Some(FlowStatement::Break) => Err(anyhow!(ScopeError::BreakOutsideLoop))?,
             Some(FlowStatement::Continue) => Err(anyhow!(ScopeError::ContinueOutsideLoop))?,
@@ -80,13 +79,13 @@ impl<'a> FunctionCall<'a> {
             argument_input,
         }
     }
-    pub fn execute(&'a self, environment: Environment<'a>) -> Result<(Environment<'a>, Primitive)> {
+    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Primitive> {
         let v = environment.get_var(&self.identifier)?;
-        let func = match v.1.as_ref() {
+        let func = match v {
             EnvironmentItem::Func(v) => v,
             _ => Err(anyhow!("{} is not a function", self.identifier))?,
         };
-        let (_, val) = func.execute(&self.argument_input, &v.0)?;
-        Ok((v.0, val))
+        let (_, val) = func.execute(&self.argument_input)?;
+        Ok(val)
     }
 }

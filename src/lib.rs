@@ -15,22 +15,22 @@ pub mod parser;
 
 pub fn run_code(code: &str) -> Result<()> {
     let ast_root = parse_ast(code)?;
-    let mut environment = Environment::default();
+    let environment = Environment::default();
     if let ASTNode::Scope(v) = ast_root {
         for node in v.code.iter() {
             let mut flow_statement: Option<FlowStatement> = None;
             match node {
-                ASTNode::Expr(v) => environment = v.execute(environment)?.0,
-                ASTNode::Declaration(v) => environment = v.execute(environment)?,
-                ASTNode::Assignment(v) => environment = v.execute(environment)?,
-                ASTNode::Scope(v) => (environment, flow_statement) = v.execute(environment)?,
-                ASTNode::IfElse(v) => (environment, flow_statement) = v.execute(environment)?,
-                ASTNode::WhileLoop(v) => (environment, flow_statement) = v.execute(environment)?,
-                ASTNode::Output(v) => environment = v.execute(environment)?,
+                ASTNode::Expr(v) => v.execute(&environment).map(|_| ())?,
+                ASTNode::Declaration(v) => v.execute(&environment)?,
+                ASTNode::Assignment(v) => v.execute(&environment)?,
+                ASTNode::Scope(v) => flow_statement = v.execute(&environment)?,
+                ASTNode::IfElse(v) => flow_statement = v.execute(&environment)?,
+                ASTNode::WhileLoop(v) => flow_statement = v.execute(&environment)?,
+                ASTNode::Output(v) => v.execute(&environment)?,
                 ASTNode::BreakStatement => flow_statement = Some(FlowStatement::Break),
                 ASTNode::ReturnStatement(_) => {
                     //flow statement here is only for error reporting so don't need to evaluate the expr inside it
-                    flow_statement = Some(FlowStatement::Return(Primitive::void()))
+                    flow_statement = Some(FlowStatement::Return(Primitive::VOID))
                 }
                 ASTNode::ContinueStatement => flow_statement = Some(FlowStatement::Continue),
             }
