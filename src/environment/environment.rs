@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{anyhow, Result};
 
 use fxhash::FxHashMap;
 
@@ -25,29 +25,62 @@ impl std::fmt::Display for EnvironmentError {
         }
     }
 }
-#[derive(Debug, Clone)]
-pub enum EnvironmentItem<'a> {
-    Primitive(Primitive),
-    Func(Rc<Func<'a>>),
-}
 
 #[derive(Debug, Default)]
 pub struct Environment<'a> {
     scope_depth: Cell<usize>,
     scope_stack: RefCell<Vec<(&'a str, usize)>>,
-    variable_mp: RefCell<FxHashMap<&'a str, Vec<(EnvironmentItem<'a>, usize)>>>,
+    variable_mp: RefCell<FxHashMap<&'a str, Vec<(Rc<Primitive>, usize)>>>,
+    function_mp: RefCell<FxHashMap<&'a str, Vec<(Rc<Func<'a>>, usize)>>>,
 }
 
 impl<'a> Environment<'a> {
-    pub fn subscribe(&self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<()> {
-        if let Some(var_stack) = self.variable_mp.borrow_mut().get_mut(identifier) {
+    pub fn can_declare(&self, identifier: &'a str) -> bool {
+        if let Some(var_stack) = self.function_mp.borrow().get(identifier) {
             if let Some((_, depth)) = var_stack.last() {
                 if *depth == self.scope_depth.get() {
-                    return Err(anyhow!(EnvironmentError::ReDeclaration(
-                        identifier.to_owned()
-                    )));
+                    return false;
                 }
             }
+        }
+        if let Some(var_stack) = self.variable_mp.borrow().get(identifier) {
+            if let Some((_, depth)) = var_stack.last() {
+                if *depth == self.scope_depth.get() {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    pub fn subscribe_func(&self, identifier: &'a str, value: Rc<Func<'a>>) -> Result<()> {
+        if self.can_declare(identifier) == false {
+            return Err(anyhow!(EnvironmentError::ReDeclaration(
+                identifier.to_owned()
+            )));
+        }
+        if let Some(var_stack) = self.function_mp.borrow_mut().get_mut(identifier) {
+            var_stack.push((value, self.scope_depth.get()));
+            self.scope_stack
+                .borrow_mut()
+                .push((identifier, self.scope_depth.get()));
+            return Ok(());
+        }
+        let mut val = Vec::with_capacity(64);
+        val.push((value, self.scope_depth.get()));
+        self.function_mp.borrow_mut().insert(identifier, val);
+        self.scope_stack
+            .borrow_mut()
+            .push((identifier, self.scope_depth.get()));
+        Ok(())
+    }
+
+    pub fn subscribe_var(&self, identifier: &'a str, value: Rc<Primitive>) -> Result<()> {
+        if self.can_declare(identifier) == false {
+            return Err(anyhow!(EnvironmentError::ReDeclaration(
+                identifier.to_owned()
+            )));
+        }
+        if let Some(var_stack) = self.variable_mp.borrow_mut().get_mut(identifier) {
             var_stack.push((value, self.scope_depth.get()));
             self.scope_stack
                 .borrow_mut()
@@ -62,7 +95,7 @@ impl<'a> Environment<'a> {
             .push((identifier, self.scope_depth.get()));
         Ok(())
     }
-    pub fn get_var(&self, identifier: &'a str) -> Result<EnvironmentItem> {
+    pub fn get_var(&'a self, identifier: &'a str) -> Result<Rc<Primitive>> {
         let x = self
             .variable_mp
             .borrow()
@@ -72,7 +105,17 @@ impl<'a> Environment<'a> {
             .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))?;
         Ok(x)
     }
-    pub fn assign_var(&self, identifier: &'a str, value: EnvironmentItem<'a>) -> Result<()> {
+    pub fn get_func(&'a self, identifier: &'a str) -> Result<Rc<Func<'a>>> {
+        let x = self
+            .function_mp
+            .borrow()
+            .get(identifier)
+            .and_then(|val| val.last())
+            .map(|(v, _)| v.clone())
+            .ok_or_else(|| anyhow!(EnvironmentError::NotDeclareation(identifier.to_owned())))?;
+        Ok(x)
+    }
+    pub fn assign_var(&self, identifier: &'a str, value: Rc<Primitive>) -> Result<()> {
         *self
             .variable_mp
             .borrow_mut()

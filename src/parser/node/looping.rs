@@ -17,11 +17,11 @@ impl<'a> WhileLoop<'a> {
     pub fn new(expr: Expression<'a>, scope: Scope<'a>) -> Self {
         WhileLoop { expr, scope }
     }
-    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Option<FlowStatement>> {
+    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<Option<FlowStatement>> {
         let mut expr_val = self.expr.execute(environment)?;
         let mut flow_statement: Option<FlowStatement> = None;
         while expr_val.as_bool()? {
-            let v = self.scope.execute(environment)?;
+            let v = self.scope.execute(environment, false)?;
             if let Some(flow) = v {
                 match flow {
                     FlowStatement::Break => break,

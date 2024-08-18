@@ -13,7 +13,7 @@ impl<'a> Output<'a> {
     pub fn new(expr: Expression<'a>, end: &'a str) -> Self {
         Self { expr, end }
     }
-    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<()> {
+    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<()> {
         let expr_val;
         expr_val = self.expr.execute(environment)?;
         print!("{}{}", expr_val, self.end);

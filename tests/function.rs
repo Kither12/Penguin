@@ -23,8 +23,8 @@ mod tests {
         test_code_ok!(
             "
                 gimme a = (a, b) => {
-                    gimme b = (a) => {};
-                    b(2);
+                    gimme c = (a) => {};
+                    c(2);
                 };
                 a(2, 3);
             "
@@ -44,5 +44,16 @@ mod tests {
                 a(2);
             "
         )
+    }
+    #[test]
+    fn function_argument_redeclare_should_fail() {
+        test_code_failed!(
+            "
+                gimme a = (a) => {
+                    gimme a = 0;
+                };
+                a(2);
+            "
+        );
     }
 }

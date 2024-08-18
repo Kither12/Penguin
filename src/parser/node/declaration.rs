@@ -2,7 +2,6 @@ use anyhow::Ok;
 use anyhow::Result;
 
 use crate::environment::environment::Environment;
-use crate::environment::environment::EnvironmentItem;
 
 use super::expression::Expression;
 
@@ -34,12 +33,8 @@ impl<'a> Assignment<'a> {
             expr: expr,
         }
     }
-    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<()> {
-        let var = environment.get_var(&self.identifier)?;
-        let val = match var {
-            EnvironmentItem::Primitive(val) => val,
-            EnvironmentItem::Func(val) => todo!(),
-        };
+    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<()> {
+        let val = environment.get_var(&self.identifier)?;
         let expr_val = match self.op {
             AssignOperation::AssignAdd => {
                 let v = self.expr.execute(environment)?;
@@ -62,7 +57,7 @@ impl<'a> Assignment<'a> {
                 Ok(v)
             }
         }?;
-        environment.assign_var(self.identifier, EnvironmentItem::Primitive(expr_val))
+        environment.assign_var(self.identifier, Rc::new(expr_val))
     }
 }
 
@@ -78,14 +73,14 @@ pub enum Declaration<'a> {
     },
 }
 impl<'a> Declaration<'a> {
-    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<()> {
+    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<()> {
         match self {
             Self::Expression { identifier, expr } => {
                 let expr_val = expr.execute(environment)?;
-                environment.subscribe(identifier, EnvironmentItem::Primitive(expr_val))
+                environment.subscribe_var(identifier, Rc::new(expr_val))
             }
             Self::Function { identifier, func } => {
-                environment.subscribe(identifier, EnvironmentItem::Func(Rc::clone(func)))
+                environment.subscribe_func(identifier, Rc::clone(func))
             }
         }
     }

@@ -1,4 +1,4 @@
-use crate::environment::environment::{Environment, EnvironmentItem};
+use crate::environment::environment::Environment;
 use anyhow::{anyhow, Ok, Result};
 
 use super::{function::FunctionCall, primitive::Primitive};
@@ -51,22 +51,13 @@ pub enum Expression<'a> {
 }
 
 impl<'a> Expression<'a> {
-    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Primitive> {
+    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<Primitive> {
         match self {
             Expression::Literal { lhs } => match lhs {
                 ExprAtom::Primitive(val) => Ok(*val),
 
                 ExprAtom::FunctionCall(val) => val.execute(environment),
-                ExprAtom::Identifier(val) => {
-                    let v = environment.get_var(val)?;
-                    match v {
-                        EnvironmentItem::Primitive(val) => Ok(val),
-                        EnvironmentItem::Func(_) => Err(anyhow!(
-                            "{} is a function pointer, cannot use in arithmetic",
-                            val
-                        )),
-                    }
-                }
+                ExprAtom::Identifier(val) => environment.get_var(val).map(|v| *v),
             },
             Expression::Unary { lhs, op } => {
                 let lhs_val = lhs.execute(environment)?;

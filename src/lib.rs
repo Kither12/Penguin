@@ -23,7 +23,7 @@ pub fn run_code(code: &str) -> Result<()> {
                 ASTNode::Expr(v) => v.execute(&environment).map(|_| ())?,
                 ASTNode::Declaration(v) => v.execute(&environment)?,
                 ASTNode::Assignment(v) => v.execute(&environment)?,
-                ASTNode::Scope(v) => flow_statement = v.execute(&environment)?,
+                ASTNode::Scope(v) => flow_statement = v.execute(&environment, false)?,
                 ASTNode::IfElse(v) => flow_statement = v.execute(&environment)?,
                 ASTNode::WhileLoop(v) => flow_statement = v.execute(&environment)?,
                 ASTNode::Output(v) => v.execute(&environment)?,

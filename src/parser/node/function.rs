@@ -1,4 +1,6 @@
-use crate::environment::environment::{Environment, EnvironmentItem};
+use std::{cell::Cell, rc::Rc};
+
+use crate::environment::environment::Environment;
 use anyhow::{anyhow, Ok, Result};
 
 use super::{
@@ -25,9 +27,10 @@ impl<'a> Func<'a> {
         Self { argument, scope }
     }
     pub fn execute(
-        &'a self,
+        self: Rc<Self>,
         argument_input: &'a Vec<ArgumentType<'a>>,
-    ) -> Result<(Environment<'a>, Primitive)> {
+        environment: &'a Environment<'a>,
+    ) -> Result<Primitive> {
         //only do 1 comparison here if it works
         //todo: Move it to the compilation process
         if self.argument.len() != argument_input.len() {
@@ -44,24 +47,34 @@ impl<'a> Func<'a> {
                 ArgumentType::Func(val) => {
                     todo!()
                 }
-                ArgumentType::Ref(_) => {}
+                ArgumentType::Ref(val) => {
+                    func_environment.subscribe_var(val, environment.get_var(val)?)?
+                }
                 ArgumentType::Expr(val) => {
-                    let expr_val = val.execute(&func_environment)?;
-                    func_environment
-                        .subscribe(self.argument[i], EnvironmentItem::Primitive(expr_val))?;
+                    let expr_val = val.execute(&environment)?;
+                    func_environment.subscribe_var(self.argument[i], Rc::new(expr_val))?;
                 }
             }
         }
+
         let flow_statement: Option<FlowStatement>;
-        let mut rt_val = Primitive::VOID;
-        flow_statement = self.scope.execute(&func_environment)?;
-        match flow_statement {
+        flow_statement = self.scope.execute(&func_environment, true)?;
+        let rt_val = match flow_statement {
             Some(FlowStatement::Break) => Err(anyhow!(ScopeError::BreakOutsideLoop))?,
             Some(FlowStatement::Continue) => Err(anyhow!(ScopeError::ContinueOutsideLoop))?,
-            Some(FlowStatement::Return(v)) => rt_val = v,
-            None => {}
+            Some(FlowStatement::Return(v)) => v,
+            None => Primitive::VOID,
         };
-        Ok((func_environment, rt_val))
+
+        for (i, v) in argument_input.into_iter().enumerate() {
+            match v {
+                ArgumentType::Ref(val) => environment
+                    .assign_var(self.argument[i], func_environment.get_var(val)?.clone())?,
+                _ => {}
+            }
+        }
+
+        Ok(rt_val)
     }
 }
 
@@ -79,13 +92,9 @@ impl<'a> FunctionCall<'a> {
             argument_input,
         }
     }
-    pub fn execute(&'a self, environment: &Environment<'a>) -> Result<Primitive> {
-        let v = environment.get_var(&self.identifier)?;
-        let func = match v {
-            EnvironmentItem::Func(v) => v,
-            _ => Err(anyhow!("{} is not a function", self.identifier))?,
-        };
-        let (_, val) = func.execute(&self.argument_input)?;
+    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<Primitive> {
+        let func = environment.get_func(&self.identifier)?;
+        let val = func.execute(&self.argument_input, environment)?;
         Ok(val)
     }
 }

@@ -37,6 +37,12 @@ mod tests {
                 }
                 gimme a = 1;
             "
-        )
+        );
+        test_code_failed!(
+            "
+                gimme a = 0;
+                gimme a = () => {};
+            "
+        );
     }
 }
