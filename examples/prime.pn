@@ -11,4 +11,4 @@ gimme is_prime = (k) => {
     }
     return true;
 };
-print(is_prime(29996224275833));
+is_prime(29996224275833);

@@ -56,4 +56,16 @@ mod tests {
             "
         );
     }
+    #[test]
+    fn function_ref_should_work() {
+        test_code_ok!(
+            "
+                gimme i = 0;
+                gimme a = (i) => {
+                    i = 3;
+                };
+                a(&i);
+            "
+        );
+    }
 }

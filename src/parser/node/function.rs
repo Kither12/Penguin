@@ -52,11 +52,10 @@ impl<'a> Func<'a> {
                 }
                 ArgumentType::Expr(val) => {
                     let expr_val = val.execute(&environment)?;
-                    func_environment.subscribe_var(self.argument[i], Rc::new(expr_val))?;
+                    func_environment.subscribe_var(self.argument[i], Rc::new(expr_val))?
                 }
             }
         }
-
         let flow_statement: Option<FlowStatement>;
         flow_statement = self.scope.execute(&func_environment, true)?;
         let rt_val = match flow_statement {
@@ -65,7 +64,6 @@ impl<'a> Func<'a> {
             Some(FlowStatement::Return(v)) => v,
             None => Primitive::VOID,
         };
-
         for (i, v) in argument_input.into_iter().enumerate() {
             match v {
                 ArgumentType::Ref(val) => environment

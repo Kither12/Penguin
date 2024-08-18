@@ -70,8 +70,9 @@ impl<'a> Scope<'a> {
                 break;
             }
         }
-        environment.close_scope();
-
+        if is_function_scope == false {
+            environment.close_scope();
+        }
         Ok(flow_statement)
     }
 }
