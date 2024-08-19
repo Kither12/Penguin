@@ -1,7 +1,7 @@
 use super::node::{
     conditional::IfElse,
     declaration::{Assignment, Declaration},
-    expression::Expression,
+    expression::{Expression, ExpressionPool},
     io::Output,
     looping::WhileLoop,
     scope::Scope,
@@ -11,12 +11,12 @@ use super::node::{
 pub enum ASTNode<'a> {
     Output(Output<'a>),
     Scope(Scope<'a>),
-    Expr(Expression<'a>),
+    Expr(ExpressionPool<'a>),
     Declaration(Declaration<'a>),
     Assignment(Assignment<'a>),
     IfElse(IfElse<'a>),
     WhileLoop(WhileLoop<'a>),
     BreakStatement,
-    ReturnStatement(Expression<'a>),
+    ReturnStatement(ExpressionPool<'a>),
     ContinueStatement,
 }

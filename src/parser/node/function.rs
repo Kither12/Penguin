@@ -4,7 +4,7 @@ use crate::environment::environment::Environment;
 use anyhow::{anyhow, Ok, Result};
 
 use super::{
-    expression::Expression,
+    expression::{Expression, ExpressionPool},
     primitive::Primitive,
     scope::{FlowStatement, Scope, ScopeError},
 };
@@ -13,7 +13,7 @@ use super::{
 pub enum ArgumentType<'a> {
     Ref(&'a str),
     Func(Func<'a>),
-    Expr(Expression<'a>),
+    Expr(ExpressionPool<'a>),
 }
 
 #[derive(Debug)]
@@ -64,13 +64,13 @@ impl<'a> Func<'a> {
             Some(FlowStatement::Return(v)) => v,
             None => Primitive::VOID,
         };
-        for (i, v) in argument_input.into_iter().enumerate() {
-            match v {
-                ArgumentType::Ref(val) => environment
-                    .assign_var(self.argument[i], func_environment.get_var(val)?.clone())?,
-                _ => {}
-            }
-        }
+        // for (i, v) in argument_input.into_iter().enumerate() {
+        //     match v {
+        //         ArgumentType::Ref(val) => environment
+        //             .assign_var(self.argument[i], func_environment.get_var(val)?.clone())?,
+        //         _ => {}
+        //     }
+        // }
 
         Ok(rt_val)
     }

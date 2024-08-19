@@ -3,22 +3,22 @@ use anyhow::Result;
 use crate::environment::environment::Environment;
 
 use super::{
-    expression::Expression,
+    expression::ExpressionPool,
     scope::{FlowStatement, Scope},
 };
 
 #[derive(Debug)]
 pub struct WhileLoop<'a> {
-    expr: Expression<'a>,
+    expr_pool: ExpressionPool<'a>,
     scope: Scope<'a>,
 }
 
 impl<'a> WhileLoop<'a> {
-    pub fn new(expr: Expression<'a>, scope: Scope<'a>) -> Self {
-        WhileLoop { expr, scope }
+    pub fn new(expr_pool: ExpressionPool<'a>, scope: Scope<'a>) -> Self {
+        WhileLoop { expr_pool, scope }
     }
     pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<Option<FlowStatement>> {
-        let mut expr_val = self.expr.execute(environment)?;
+        let mut expr_val = self.expr_pool.execute(environment)?;
         let mut flow_statement: Option<FlowStatement> = None;
         while expr_val.as_bool()? {
             let v = self.scope.execute(environment, false)?;
@@ -32,7 +32,7 @@ impl<'a> WhileLoop<'a> {
                     FlowStatement::Continue => {}
                 }
             }
-            expr_val = self.expr.execute(environment)?;
+            expr_val = self.expr_pool.execute(environment)?;
         }
         Ok(flow_statement)
     }

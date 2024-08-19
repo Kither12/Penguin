@@ -1,20 +1,20 @@
 use crate::environment::environment::Environment;
 
 use super::{
-    expression::Expression,
+    expression::{Expression, ExpressionPool},
     scope::{FlowStatement, Scope},
 };
 use anyhow::{Context, Result};
 
 #[derive(Debug)]
 pub struct IfElse<'a> {
-    if_clause: Vec<(Expression<'a>, Scope<'a>)>,
+    if_clause: Vec<(ExpressionPool<'a>, Scope<'a>)>,
     else_clause: Option<Scope<'a>>,
 }
 
 impl<'a> IfElse<'a> {
     pub fn new(
-        if_clause: Vec<(Expression<'a>, Scope<'a>)>,
+        if_clause: Vec<(ExpressionPool<'a>, Scope<'a>)>,
         else_clause: Option<Scope<'a>>,
     ) -> Self {
         IfElse {
