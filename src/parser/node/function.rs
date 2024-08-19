@@ -1,10 +1,10 @@
-use std::{cell::Cell, rc::Rc};
+use std::rc::Rc;
 
 use crate::environment::environment::Environment;
 use anyhow::{anyhow, Ok, Result};
 
 use super::{
-    expression::{Expression, ExpressionPool},
+    expression::ExpressionPool,
     primitive::Primitive,
     scope::{FlowStatement, Scope, ScopeError},
 };
@@ -18,17 +18,17 @@ pub enum ArgumentType<'a> {
 
 #[derive(Debug)]
 pub struct Func<'a> {
-    argument: Vec<&'a str>,
+    argument: Box<[&'a str]>,
     scope: Scope<'a>,
 }
 
 impl<'a> Func<'a> {
-    pub fn new(argument: Vec<&'a str>, scope: Scope<'a>) -> Self {
+    pub fn new(argument: Box<[&'a str]>, scope: Scope<'a>) -> Self {
         Self { argument, scope }
     }
     pub fn execute(
         self: Rc<Self>,
-        argument_input: &'a Vec<ArgumentType<'a>>,
+        argument_input: &'a [ArgumentType<'a>],
         environment: &'a Environment<'a>,
     ) -> Result<Primitive> {
         //only do 1 comparison here if it works
@@ -80,11 +80,11 @@ impl<'a> Func<'a> {
 
 pub struct FunctionCall<'a> {
     identifier: &'a str,
-    argument_input: Vec<ArgumentType<'a>>,
+    argument_input: Box<[ArgumentType<'a>]>,
 }
 
 impl<'a> FunctionCall<'a> {
-    pub fn new(identifier: &'a str, argument_input: Vec<ArgumentType<'a>>) -> Self {
+    pub fn new(identifier: &'a str, argument_input: Box<[ArgumentType<'a>]>) -> Self {
         FunctionCall {
             identifier,
             argument_input,

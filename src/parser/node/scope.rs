@@ -5,7 +5,7 @@ use super::primitive::Primitive;
 
 #[derive(Debug)]
 pub struct Scope<'a> {
-    pub code: Vec<ASTNode<'a>>,
+    pub code: Box<[ASTNode<'a>]>,
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ impl std::fmt::Display for ScopeError {
 }
 
 impl<'a> Scope<'a> {
-    pub fn new(code: Vec<ASTNode<'a>>) -> Self {
+    pub fn new(code: Box<[ASTNode<'a>]>) -> Self {
         Scope { code }
     }
     pub fn execute(

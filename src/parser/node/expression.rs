@@ -1,6 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::environment::environment::Environment;
 use anyhow::Result;
 
@@ -51,11 +48,8 @@ impl<'a> ExpressionPool<'a> {
         self.pool.push(expr);
         self.pool.len() - 1
     }
-    pub fn get(&'a self, idx: usize) -> &Expression {
-        self.pool.get(idx).unwrap()
-    }
     pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<Primitive> {
-        self.pool.last().unwrap().execute(environment, self)
+        self.pool.last().unwrap().execute(environment, &self.pool)
     }
 }
 
@@ -70,7 +64,7 @@ impl<'a> Expression<'a> {
     pub fn execute(
         &'a self,
         environment: &'a Environment<'a>,
-        expr_pool: &'a ExpressionPool<'a>,
+        expr_pool: &'a [Expression<'a>],
     ) -> Result<Primitive> {
         match self {
             Expression::Literal { lhs } => match lhs {
@@ -80,29 +74,29 @@ impl<'a> Expression<'a> {
                 ExprAtom::Identifier(val) => environment.get_var(val).map(|v| *v),
             },
             Expression::Unary { lhs, op } => {
-                let lhs_val = expr_pool.get(*lhs).execute(environment, expr_pool)?;
+                let lhs_val = expr_pool[*lhs].execute(environment, expr_pool)?;
                 Ok(lhs_val.evaluate_unary(op)?)
             }
             Expression::Binary { lhs, op, rhs } => match op {
                 OpType::And => {
-                    let lhs_val = expr_pool.get(*lhs).execute(environment, expr_pool)?;
+                    let lhs_val = expr_pool[*lhs].execute(environment, expr_pool)?;
                     if lhs_val.as_bool()? == false {
                         return Ok(lhs_val);
                     }
-                    let rhs_val = expr_pool.get(*rhs).execute(environment, expr_pool)?;
+                    let rhs_val = expr_pool[*rhs].execute(environment, expr_pool)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
                 OpType::Or => {
-                    let lhs_val = expr_pool.get(*lhs).execute(environment, expr_pool)?;
+                    let lhs_val = expr_pool[*lhs].execute(environment, expr_pool)?;
                     if lhs_val.as_bool()? == true {
                         return Ok(lhs_val);
                     }
-                    let rhs_val = expr_pool.get(*rhs).execute(environment, expr_pool)?;
+                    let rhs_val = expr_pool[*rhs].execute(environment, expr_pool)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
                 _ => {
-                    let lhs_val = expr_pool.get(*lhs).execute(environment, expr_pool)?;
-                    let rhs_val = expr_pool.get(*rhs).execute(environment, expr_pool)?;
+                    let lhs_val = expr_pool[*lhs].execute(environment, expr_pool)?;
+                    let rhs_val = expr_pool[*rhs].execute(environment, expr_pool)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
             },

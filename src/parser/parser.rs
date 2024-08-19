@@ -121,7 +121,7 @@ fn parse_function_declaration<'a>(pairs: Pairs<'a, Rule>) -> Result<Func<'a>> {
     let mut pairs = pairs.peekable();
     let argument = from_fn(|| pairs.next_if(|pair| pair.as_rule().eq(&Rule::identifier)))
         .map(|v| v.as_str())
-        .collect::<Vec<&str>>();
+        .collect::<Box<[&str]>>();
     let scope = parse_scope(pairs.next().unwrap().into_inner())?;
     Ok(Func::new(argument, scope))
 }
@@ -207,7 +207,7 @@ fn parse_scope<'a>(pairs: Pairs<'a, Rule>) -> Result<Scope<'a>> {
                 }
                 _ => unreachable!(),
             })
-            .collect::<Result<Vec<ASTNode>>>()?,
+            .collect::<Result<Box<[ASTNode]>>>()?,
     ))
 }
 
@@ -223,7 +223,7 @@ fn parse_if_else<'a>(pairs: Pairs<'a, Rule>) -> Result<IfElse<'a>> {
                 scope_parsed.map(|b| (Rc::try_unwrap(expr_pool).unwrap().into_inner(), b))
             })
         })
-        .collect::<Result<Vec<(ExpressionPool, Scope)>>>()?;
+        .collect::<Result<Box<[(ExpressionPool, Scope)]>>>()?;
 
     let else_clause = pairs
         .next()
@@ -275,7 +275,7 @@ pub fn parse_function_call<'a>(mut pairs: Pairs<'a, Rule>) -> Result<FunctionCal
             Rule::ref_var => Ok(ArgumentType::Ref(v.into_inner().next().unwrap().as_str())),
             _ => unreachable!(),
         })
-        .collect::<Result<Vec<ArgumentType>>>()?;
+        .collect::<Result<Box<[ArgumentType]>>>()?;
     Ok(FunctionCall::new(identifier, argument_input))
 }
 
