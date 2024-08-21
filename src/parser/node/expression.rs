@@ -1,3 +1,5 @@
+use std::{collections::hash_map::Entry, rc::Rc};
+
 use crate::environment::environment::Environment;
 use anyhow::Result;
 

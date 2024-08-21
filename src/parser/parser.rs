@@ -53,7 +53,7 @@ fn pratt_parser() -> &'static PrattParser<Rule> {
     })
 }
 
-fn parse_expr<'a>(pairs: Pairs<'a, Rule>, pool: Rc<RefCell<ExpressionPool<'a>>>) -> Result<usize> {
+fn parse_expr<'a>(pairs: Pairs<'a, Rule>, pool: &RefCell<ExpressionPool<'a>>) -> Result<usize> {
     pratt_parser()
         .map_primary(|primary| match primary.as_rule() {
             Rule::function_call => parse_function_call(primary.into_inner()).map(|v| {
@@ -70,7 +70,7 @@ fn parse_expr<'a>(pairs: Pairs<'a, Rule>, pool: Rc<RefCell<ExpressionPool<'a>>>)
             Rule::identifier => Ok(pool.borrow_mut().add(Expression::Literal {
                 lhs: ExprAtom::Identifier(primary.as_str()),
             })),
-            Rule::expr => parse_expr(primary.into_inner(), Rc::clone(&pool)),
+            Rule::expr => parse_expr(primary.into_inner(), pool),
             _ => unreachable!(),
         })
         .map_infix(|lhs, op, rhs| {
@@ -130,11 +130,11 @@ fn parse_declaration<'a>(mut pairs: Pairs<'a, Rule>) -> Result<Declaration<'a>> 
     let val = pairs.next().unwrap();
     match val.as_rule() {
         Rule::expr => {
-            let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
-            parse_expr(val.into_inner(), Rc::clone(&expr_pool))?;
+            let expr_pool = RefCell::new(ExpressionPool::new());
+            parse_expr(val.into_inner(), &expr_pool)?;
             Ok(Declaration::Expression {
                 identifier,
-                expr_pool: Rc::try_unwrap(expr_pool).unwrap().into_inner(),
+                expr_pool: expr_pool.into_inner(),
             })
         }
         Rule::function_declaration => Ok(Declaration::Function {
@@ -155,22 +155,18 @@ fn parse_assignment<'a>(mut pairs: Pairs<'a, Rule>) -> Result<Assignment<'a>> {
         Rule::cum_div => AssignOperation::AssignDiv,
         _ => unreachable!(),
     };
-    let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
-    parse_expr(pairs.next().unwrap().into_inner(), Rc::clone(&expr_pool))?;
-    Ok(Assignment::new(
-        identifier,
-        op,
-        Rc::try_unwrap(expr_pool).unwrap().into_inner(),
-    ))
+    let expr_pool = RefCell::new(ExpressionPool::new());
+    parse_expr(pairs.next().unwrap().into_inner(), &expr_pool)?;
+    Ok(Assignment::new(identifier, op, expr_pool.into_inner()))
 }
 fn parse_print_statement<'a>(mut pairs: Pairs<'a, Rule>) -> Result<Output<'a>> {
     let output_type = pairs.next().unwrap().as_rule();
-    let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
+    let expr_pool = RefCell::new(ExpressionPool::new());
     match output_type {
-        Rule::print => parse_expr(pairs.next().unwrap().into_inner(), Rc::clone(&expr_pool))
-            .map(|_| Output::new(Rc::try_unwrap(expr_pool).unwrap().into_inner(), "")),
-        Rule::println => parse_expr(pairs.next().unwrap().into_inner(), Rc::clone(&expr_pool))
-            .map(|_| Output::new(Rc::try_unwrap(expr_pool).unwrap().into_inner(), "\n")),
+        Rule::print => parse_expr(pairs.next().unwrap().into_inner(), &expr_pool)
+            .map(|_| Output::new(expr_pool.into_inner(), "")),
+        Rule::println => parse_expr(pairs.next().unwrap().into_inner(), &expr_pool)
+            .map(|_| Output::new(expr_pool.into_inner(), "\n")),
         _ => unreachable!(),
     }
 }
@@ -179,9 +175,9 @@ fn parse_scope<'a>(pairs: Pairs<'a, Rule>) -> Result<Scope<'a>> {
         pairs
             .map(|pair| match pair.as_rule() {
                 Rule::expr => {
-                    let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
-                    parse_expr(pair.into_inner(), Rc::clone(&expr_pool))
-                        .map(|_| ASTNode::Expr(Rc::try_unwrap(expr_pool).unwrap().into_inner()))
+                    let expr_pool = RefCell::new(ExpressionPool::new());
+                    parse_expr(pair.into_inner(), &expr_pool)
+                        .map(|_| ASTNode::Expr(expr_pool.into_inner()))
                 }
                 Rule::assignment => {
                     parse_assignment(pair.into_inner()).map(|v| ASTNode::Assignment(v))
@@ -200,10 +196,9 @@ fn parse_scope<'a>(pairs: Pairs<'a, Rule>) -> Result<Scope<'a>> {
                 Rule::continue_statement => Ok(ASTNode::ContinueStatement),
                 Rule::break_statement => Ok(ASTNode::BreakStatement),
                 Rule::return_statement => {
-                    let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
-                    parse_expr(pair.into_inner(), Rc::clone(&expr_pool)).map(|_| {
-                        ASTNode::ReturnStatement(Rc::try_unwrap(expr_pool).unwrap().into_inner())
-                    })
+                    let expr_pool = RefCell::new(ExpressionPool::new());
+                    parse_expr(pair.into_inner(), &expr_pool)
+                        .map(|_| ASTNode::ReturnStatement(expr_pool.into_inner()))
                 }
                 _ => unreachable!(),
             })
@@ -215,13 +210,11 @@ fn parse_if_else<'a>(pairs: Pairs<'a, Rule>) -> Result<IfElse<'a>> {
     let mut pairs = pairs.peekable();
     let if_clause = from_fn(|| pairs.next_if(|pair| pair.as_rule().ne(&Rule::r#else)))
         .map(|pair| {
-            let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
+            let expr_pool = RefCell::new(ExpressionPool::new());
             let mut inner = pair.into_inner();
-            let expr_parsed = parse_expr(inner.next().unwrap().into_inner(), Rc::clone(&expr_pool));
+            let expr_parsed = parse_expr(inner.next().unwrap().into_inner(), &expr_pool);
             let scope_parsed = parse_scope(inner.next().unwrap().into_inner());
-            expr_parsed.and_then(|_| {
-                scope_parsed.map(|b| (Rc::try_unwrap(expr_pool).unwrap().into_inner(), b))
-            })
+            expr_parsed.and_then(|_| scope_parsed.map(|b| (expr_pool.into_inner(), b)))
         })
         .collect::<Result<Box<[(ExpressionPool, Scope)]>>>()?;
 
@@ -233,13 +226,10 @@ fn parse_if_else<'a>(pairs: Pairs<'a, Rule>) -> Result<IfElse<'a>> {
 }
 
 fn parse_while_loop<'a>(mut pairs: Pairs<'a, Rule>) -> Result<WhileLoop<'a>> {
-    let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
-    parse_expr(pairs.next().unwrap().into_inner(), Rc::clone(&expr_pool))?;
+    let expr_pool = RefCell::new(ExpressionPool::new());
+    parse_expr(pairs.next().unwrap().into_inner(), &expr_pool)?;
     let scope_parsed = parse_scope(pairs.next().unwrap().into_inner())?;
-    Ok(WhileLoop::new(
-        Rc::try_unwrap(expr_pool).unwrap().into_inner(),
-        scope_parsed,
-    ))
+    Ok(WhileLoop::new(expr_pool.into_inner(), scope_parsed))
 }
 
 fn handle_parse_error(code: &str, e: Error<Rule>) -> anyhow::Error {
@@ -268,9 +258,9 @@ pub fn parse_function_call<'a>(mut pairs: Pairs<'a, Rule>) -> Result<FunctionCal
                 parse_function_declaration(v.into_inner()).map(|v| ArgumentType::Func(v))
             }
             Rule::expr => {
-                let expr_pool = Rc::new(RefCell::new(ExpressionPool::new()));
-                parse_expr(v.into_inner(), Rc::clone(&expr_pool))
-                    .map(|_| ArgumentType::Expr(Rc::try_unwrap(expr_pool).unwrap().into_inner()))
+                let expr_pool = RefCell::new(ExpressionPool::new());
+                parse_expr(v.into_inner(), &expr_pool)
+                    .map(|_| ArgumentType::Expr(expr_pool.into_inner()))
             }
             Rule::ref_var => Ok(ArgumentType::Ref(v.into_inner().next().unwrap().as_str())),
             _ => unreachable!(),
