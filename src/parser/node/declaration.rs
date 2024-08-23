@@ -1,9 +1,10 @@
 use anyhow::Ok;
 use anyhow::Result;
 
-use crate::environment::environment::Environment;
+use crate::environment::environment::Var;
+use crate::ProgramState;
 
-use super::expression::ExpressionPool;
+use super::expression::Expr;
 use super::expression::OpType;
 use super::function::Func;
 use std::rc::Rc;
@@ -18,72 +19,66 @@ pub enum AssignOperation {
 }
 
 #[derive(Debug)]
-pub struct Assignment<'a> {
-    identifier: &'a str,
+pub struct Assignment {
+    var: Var,
     op: AssignOperation,
-    expr_pool: ExpressionPool<'a>,
+    expr: Expr,
 }
 
-impl<'a> Assignment<'a> {
-    pub fn new(identifier: &'a str, op: AssignOperation, expr_pool: ExpressionPool<'a>) -> Self {
-        Self {
-            identifier,
-            op,
-            expr_pool,
-        }
+impl Assignment {
+    pub fn new(var: Var, op: AssignOperation, expr: Expr) -> Self {
+        Self { var, op, expr }
     }
-    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<()> {
-        let val = environment.get_var(&self.identifier)?;
+    pub fn execute(&self, program: &ProgramState) -> Result<()> {
+        let val = program.environment.borrow().get_var(self.var)?;
         let expr_val = match self.op {
             AssignOperation::AssignAdd => {
-                let v = self.expr_pool.execute(environment)?;
+                let v = self.expr.execute(program)?;
                 v.evaluate_primary(&val, &OpType::Add)
             }
             AssignOperation::AssignSub => {
-                let v = self.expr_pool.execute(environment)?;
+                let v = self.expr.execute(program)?;
                 v.evaluate_primary(&val, &OpType::Sub)
             }
             AssignOperation::AssignMul => {
-                let v = self.expr_pool.execute(environment)?;
+                let v = self.expr.execute(program)?;
                 v.evaluate_primary(&val, &OpType::Mul)
             }
             AssignOperation::AssignDiv => {
-                let v = self.expr_pool.execute(environment)?;
+                let v = self.expr.execute(program)?;
                 v.evaluate_primary(&val, &OpType::Div)
             }
             AssignOperation::AssignOp => {
-                let v = self.expr_pool.execute(environment)?;
+                let v = self.expr.execute(program)?;
                 Ok(v)
             }
         }?;
-        environment.assign_var(self.identifier, Rc::new(expr_val))
+        program
+            .environment
+            .borrow_mut()
+            .assign_var(self.var, expr_val)
     }
 }
 
 #[derive(Debug)]
-pub enum Declaration<'a> {
-    Expression {
-        identifier: &'a str,
-        expr_pool: ExpressionPool<'a>,
-    },
-    Function {
-        identifier: &'a str,
-        func: Rc<Func<'a>>,
-    },
+pub enum Declaration {
+    Expression { var: Var, expr: Expr },
+    Function { var: Var, func: Rc<Func> },
 }
-impl<'a> Declaration<'a> {
-    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<()> {
+impl Declaration {
+    pub fn execute(&self, program: &ProgramState) -> Result<()> {
         match self {
-            Self::Expression {
-                identifier,
-                expr_pool,
-            } => {
-                let expr_val = expr_pool.execute(environment)?;
-                environment.subscribe_var(identifier, Rc::new(expr_val))
+            Self::Expression { var, expr } => {
+                let expr_val = expr.execute(program)?;
+                program
+                    .environment
+                    .borrow_mut()
+                    .subscribe_var(*var, expr_val)
             }
-            Self::Function { identifier, func } => {
-                environment.subscribe_func(identifier, Rc::clone(func))
-            }
+            Self::Function { var, func } => program
+                .environment
+                .borrow_mut()
+                .subscribe_func(*var, Rc::clone(func)),
         }
     }
 }
