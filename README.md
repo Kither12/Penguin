@@ -8,7 +8,7 @@ To run the interpreter you can use
 cargo run --release -- examples/prime.pn
 ```
 # Benchmarking
-The table below illustrates the time it takes to run two simple programs between Penguin and Python. The benchmarks are measured using Hyperfine (https://github.com/sharkdp/hyperfine). The code used for benchmarking is in the example folder.
+The table below illustrates the time it takes to run two simple programs between Penguin and Python. The benchmarks are measured using [Hyperfine](https://github.com/sharkdp/hyperfine). The code used for benchmarking is in the example folder.
 | Program | Penguin  | Python |
 | ------------- | ------------- | ------------- |
 |  prime |  520.6 | 412.7 |
