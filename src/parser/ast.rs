@@ -1,22 +1,22 @@
 use super::node::{
     conditional::IfElse,
     declaration::{Assignment, Declaration},
-    expression::Expression,
+    expression::Expr,
     io::Output,
     looping::WhileLoop,
     scope::Scope,
 };
 
 #[derive(Debug)]
-pub enum ASTNode<'a> {
-    Output(Output<'a>),
-    Scope(Scope<'a>),
-    Expr(Expression<'a>),
-    Declaration(Declaration<'a>),
-    Assignment(Assignment<'a>),
-    IfElse(IfElse<'a>),
-    WhileLoop(WhileLoop<'a>),
+pub enum ASTNode {
+    Output(Output),
+    Scope(Scope),
+    Expr(Expr),
+    Declaration(Declaration),
+    Assignment(Assignment),
+    IfElse(IfElse),
+    WhileLoop(WhileLoop),
     BreakStatement,
-    ReturnStatement(Expression<'a>),
+    ReturnStatement(Expr),
     ContinueStatement,
 }

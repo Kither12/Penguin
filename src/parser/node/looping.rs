@@ -1,27 +1,27 @@
 use anyhow::Result;
 
-use crate::environment::environment::Environment;
+use crate::ProgramState;
 
 use super::{
-    expression::Expression,
+    expression::Expr,
     scope::{FlowStatement, Scope},
 };
 
 #[derive(Debug)]
-pub struct WhileLoop<'a> {
-    expr: Expression<'a>,
-    scope: Scope<'a>,
+pub struct WhileLoop {
+    expr: Expr,
+    scope: Scope,
 }
 
-impl<'a> WhileLoop<'a> {
-    pub fn new(expr: Expression<'a>, scope: Scope<'a>) -> Self {
+impl WhileLoop {
+    pub fn new(expr: Expr, scope: Scope) -> Self {
         WhileLoop { expr, scope }
     }
-    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<Option<FlowStatement>> {
-        let mut expr_val = self.expr.execute(environment)?;
+    pub fn execute(&self, program: &ProgramState) -> Result<Option<FlowStatement>> {
+        let mut expr_val = self.expr.execute(program)?;
         let mut flow_statement: Option<FlowStatement> = None;
         while expr_val.as_bool()? {
-            let v = self.scope.execute(environment, false)?;
+            let v = self.scope.execute(program, false)?;
             if let Some(flow) = v {
                 match flow {
                     FlowStatement::Break => break,
@@ -32,7 +32,7 @@ impl<'a> WhileLoop<'a> {
                     FlowStatement::Continue => {}
                 }
             }
-            expr_val = self.expr.execute(environment)?;
+            expr_val = self.expr.execute(program)?;
         }
         Ok(flow_statement)
     }

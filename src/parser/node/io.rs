@@ -1,21 +1,20 @@
-use crate::environment::environment::Environment;
+use crate::ProgramState;
 
-use super::expression::Expression;
+use super::expression::Expr;
 use anyhow::Result;
 
 #[derive(Debug)]
-pub struct Output<'a> {
-    expr: Expression<'a>,
-    end: &'a str,
+pub struct Output {
+    expr: Expr,
+    end: String,
 }
 
-impl<'a> Output<'a> {
-    pub fn new(expr: Expression<'a>, end: &'a str) -> Self {
+impl Output {
+    pub fn new(expr: Expr, end: String) -> Self {
         Self { expr, end }
     }
-    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<()> {
-        let expr_val;
-        expr_val = self.expr.execute(environment)?;
+    pub fn execute(&self, program: &ProgramState) -> Result<()> {
+        let expr_val = self.expr.execute(program)?;
         print!("{}{}", expr_val, self.end);
         Ok(())
     }

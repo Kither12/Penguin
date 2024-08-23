@@ -1,11 +1,11 @@
-use crate::{environment::environment::Environment, parser::ast::ASTNode};
+use crate::{parser::ast::ASTNode, ProgramState};
 use anyhow::Result;
 
 use super::primitive::Primitive;
 
 #[derive(Debug)]
-pub struct Scope<'a> {
-    pub code: Vec<ASTNode<'a>>,
+pub struct Scope {
+    pub code: Box<[ASTNode]>,
 }
 
 #[derive(Debug)]
@@ -37,32 +37,32 @@ impl std::fmt::Display for ScopeError {
     }
 }
 
-impl<'a> Scope<'a> {
-    pub fn new(code: Vec<ASTNode<'a>>) -> Self {
+impl Scope {
+    pub fn new(code: Box<[ASTNode]>) -> Self {
         Scope { code }
     }
     pub fn execute(
-        &'a self,
-        environment: &'a Environment<'a>,
+        &self,
+        program: &ProgramState,
         is_function_scope: bool,
     ) -> Result<Option<FlowStatement>> {
         if is_function_scope == false {
-            environment.open_scope();
+            program.environment.borrow_mut().open_scope();
         }
         let mut flow_statement: Option<FlowStatement> = None;
         for node in self.code.iter() {
             match node {
-                ASTNode::Expr(v) => v.execute(environment).map(|_| ())?,
-                ASTNode::Declaration(v) => v.execute(environment)?,
-                ASTNode::Assignment(v) => v.execute(environment)?,
-                ASTNode::Scope(v) => flow_statement = v.execute(environment, false)?,
-                ASTNode::IfElse(v) => flow_statement = v.execute(environment)?,
-                ASTNode::WhileLoop(v) => flow_statement = v.execute(environment)?,
-                ASTNode::Output(v) => v.execute(environment)?,
+                ASTNode::Expr(v) => v.execute(program).map(|_| ())?,
+                ASTNode::Declaration(v) => v.execute(program)?,
+                ASTNode::Assignment(v) => v.execute(program)?,
+                ASTNode::Scope(v) => flow_statement = v.execute(program, false)?,
+                ASTNode::IfElse(v) => flow_statement = v.execute(program)?,
+                ASTNode::WhileLoop(v) => flow_statement = v.execute(program)?,
+                ASTNode::Output(v) => v.execute(program)?,
                 ASTNode::BreakStatement => flow_statement = Some(FlowStatement::Break),
                 ASTNode::ContinueStatement => flow_statement = Some(FlowStatement::Continue),
                 ASTNode::ReturnStatement(v) => {
-                    let prim_value = v.execute(environment)?;
+                    let prim_value = v.execute(program)?;
                     flow_statement = Some(FlowStatement::Return(prim_value));
                 }
             }
@@ -71,7 +71,7 @@ impl<'a> Scope<'a> {
             }
         }
         if is_function_scope == false {
-            environment.close_scope();
+            program.environment.borrow_mut().close_scope();
         }
         Ok(flow_statement)
     }

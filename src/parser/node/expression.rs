@@ -1,5 +1,5 @@
-use crate::environment::environment::Environment;
-use anyhow::{anyhow, Ok, Result};
+use crate::{environment::environment::Var, ProgramState};
+use anyhow::Result;
 
 use super::{function::FunctionCall, primitive::Primitive};
 
@@ -28,61 +28,88 @@ pub enum OpType {
 }
 
 #[derive(Debug)]
-pub enum ExprAtom<'a> {
-    Primitive(Primitive),
-    FunctionCall(FunctionCall<'a>),
-    Identifier(&'a str),
+pub struct Expr(pub usize);
+
+impl Expr {
+    pub fn execute(&self, program: &ProgramState) -> Result<Primitive> {
+        program.expr_pool.pool[self.0].execute(program)
+    }
 }
 
 #[derive(Debug)]
-pub enum Expression<'a> {
-    Literal {
-        lhs: ExprAtom<'a>,
-    },
-    Unary {
-        lhs: Box<Expression<'a>>,
-        op: OpType,
-    },
-    Binary {
-        lhs: Box<Expression<'a>>,
-        op: OpType,
-        rhs: Box<Expression<'a>>,
-    },
+pub enum ExprAtom {
+    Primitive(Primitive),
+    FunctionCall(FunctionCall),
+    Var(Var),
+}
+#[derive(Debug)]
+pub struct ExpressionPool {
+    pool: Vec<Expression>,
 }
 
-impl<'a> Expression<'a> {
-    pub fn execute(&'a self, environment: &'a Environment<'a>) -> Result<Primitive> {
+impl ExpressionPool {
+    pub fn new() -> Self {
+        ExpressionPool {
+            pool: Vec::with_capacity(65536), // 2^16
+        }
+    }
+    pub fn shrink(&mut self) {
+        self.pool.shrink_to_fit();
+    }
+    pub fn add(&mut self, expr: Expression) -> usize {
+        self.pool.push(expr);
+        self.pool.len() - 1
+    }
+    pub fn execute(program_state: &ProgramState) -> Result<Primitive> {
+        program_state
+            .expr_pool
+            .pool
+            .last()
+            .unwrap()
+            .execute(program_state)
+    }
+}
+
+#[derive(Debug)]
+pub enum Expression {
+    Literal { lhs: ExprAtom },
+    Unary { lhs: Expr, op: OpType },
+    Binary { lhs: Expr, op: OpType, rhs: Expr },
+}
+
+impl Expression {
+    pub fn execute(&self, program: &ProgramState) -> Result<Primitive> {
         match self {
             Expression::Literal { lhs } => match lhs {
                 ExprAtom::Primitive(val) => Ok(*val),
 
-                ExprAtom::FunctionCall(val) => val.execute(environment),
-                ExprAtom::Identifier(val) => environment.get_var(val).map(|v| *v),
+                ExprAtom::FunctionCall(val) => val.execute(program),
+                ExprAtom::Var(val) => program.environment.borrow_mut().get_var(*val).map(|v| v),
             },
             Expression::Unary { lhs, op } => {
-                let lhs_val = lhs.execute(environment)?;
+                let lhs_val = program.expr_pool.pool[lhs.0].execute(program)?;
                 Ok(lhs_val.evaluate_unary(op)?)
             }
             Expression::Binary { lhs, op, rhs } => match op {
                 OpType::And => {
-                    let lhs_val = lhs.execute(environment)?;
+                    let lhs_val = program.expr_pool.pool[lhs.0].execute(program)?;
                     if lhs_val.as_bool()? == false {
                         return Ok(lhs_val);
                     }
-                    let rhs_val = rhs.execute(environment)?;
+                    let rhs_val = program.expr_pool.pool[rhs.0].execute(program)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
                 OpType::Or => {
-                    let lhs_val = lhs.execute(environment)?;
+                    let lhs_val = program.expr_pool.pool[lhs.0].execute(program)?;
                     if lhs_val.as_bool()? == true {
                         return Ok(lhs_val);
                     }
-                    let rhs_val = rhs.execute(environment)?;
+                    let rhs_val = program.expr_pool.pool[rhs.0].execute(program)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
                 _ => {
-                    let lhs_val = lhs.execute(environment)?;
-                    let rhs_val = rhs.execute(environment)?;
+                    let lhs_val = program.expr_pool.pool[lhs.0].execute(program)?;
+                    let rhs_val = program.expr_pool.pool[rhs.0].execute(program)?;
                     Ok(lhs_val.evaluate_primary(&rhs_val, op)?)
                 }
             },
