@@ -47,6 +47,12 @@ pub struct ExpressionPool {
     pool: Vec<Expression>,
 }
 
+impl Default for ExpressionPool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExpressionPool {
     pub fn new() -> Self {
         ExpressionPool {
@@ -84,7 +90,7 @@ impl Expression {
                 ExprAtom::Primitive(val) => Ok(*val),
 
                 ExprAtom::FunctionCall(val) => val.execute(program),
-                ExprAtom::Var(val) => program.environment.borrow_mut().get_var(*val).map(|v| v),
+                ExprAtom::Var(val) => program.environment.borrow_mut().get_var(*val),
             },
             Expression::Unary { lhs, op } => {
                 let lhs_val = program.expr_pool.pool[lhs.0].execute(program)?;
@@ -93,7 +99,7 @@ impl Expression {
             Expression::Binary { lhs, op, rhs } => match op {
                 OpType::And => {
                     let lhs_val = program.expr_pool.pool[lhs.0].execute(program)?;
-                    if lhs_val.as_bool()? == false {
+                    if !(lhs_val.as_bool()?) {
                         return Ok(lhs_val);
                     }
                     let rhs_val = program.expr_pool.pool[rhs.0].execute(program)?;
@@ -101,7 +107,7 @@ impl Expression {
                 }
                 OpType::Or => {
                     let lhs_val = program.expr_pool.pool[lhs.0].execute(program)?;
-                    if lhs_val.as_bool()? == true {
+                    if lhs_val.as_bool()? {
                         return Ok(lhs_val);
                     }
                     let rhs_val = program.expr_pool.pool[rhs.0].execute(program)?;

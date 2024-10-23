@@ -46,7 +46,7 @@ impl Scope {
         program: &ProgramState,
         is_function_scope: bool,
     ) -> Result<Option<FlowStatement>> {
-        if is_function_scope == false {
+        if !is_function_scope {
             program.environment.borrow_mut().open_scope();
         }
         let mut flow_statement: Option<FlowStatement> = None;
@@ -70,7 +70,7 @@ impl Scope {
                 break;
             }
         }
-        if is_function_scope == false {
+        if !is_function_scope {
             program.environment.borrow_mut().close_scope();
         }
         Ok(flow_statement)

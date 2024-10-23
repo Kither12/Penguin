@@ -1,7 +1,7 @@
 mod common;
 #[cfg(test)]
 mod tests {
-    use crate::{test_code_failed, test_code_ok};
+    use crate::test_code_ok;
 
     #[test]
     fn while_loop() {

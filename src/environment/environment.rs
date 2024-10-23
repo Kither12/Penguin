@@ -1,6 +1,6 @@
 extern crate fxhash;
 
-use std::{f32::consts::E, rc::Rc};
+use std::rc::Rc;
 
 use anyhow::{anyhow, Result};
 
@@ -63,20 +63,20 @@ impl<'a> Environment<'a> {
                 return Err(anyhow!(EnvironmentError::ReDeclaration));
             }
         }
-        return Ok(());
+        Ok(())
     }
     pub fn subscribe_func(&mut self, var: Var, value: Rc<Func>) -> Result<()> {
         self.check_declare(var)?;
         self.function_mp[var.0].push((value, self.scope_depth));
         self.scope_stack.push((var, self.scope_depth));
-        return Ok(());
+        Ok(())
     }
 
     pub fn subscribe_var(&mut self, var: Var, value: Primitive) -> Result<()> {
         self.check_declare(var)?;
         self.variable_mp[var.0].push((value, self.scope_depth));
         self.scope_stack.push((var, self.scope_depth));
-        return Ok(());
+        Ok(())
     }
     pub fn get_var(&'a self, var: Var) -> Result<Primitive> {
         self.variable_mp[var.0]
@@ -116,7 +116,7 @@ impl<'a> Environment<'a> {
         Ok(())
     }
     pub fn open_scope(&mut self) {
-        self.scope_depth = self.scope_depth + 1;
+        self.scope_depth += 1;
     }
     pub fn close_scope(&mut self) {
         while let Some((var, depth)) = self.scope_stack.last() {
@@ -127,7 +127,7 @@ impl<'a> Environment<'a> {
                 break;
             }
         }
-        self.scope_depth = self.scope_depth - 1;
+        self.scope_depth -= 1;
     }
     pub fn open_function_scope(&mut self) {
         self.open_scope();

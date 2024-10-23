@@ -40,7 +40,7 @@ impl Func {
             return Err(anyhow!("too few arguments in function call"));
         }
         program.environment.borrow_mut().open_function_scope();
-        for (i, v) in argument_input.into_iter().enumerate() {
+        for (i, v) in argument_input.iter().enumerate() {
             match v {
                 ArgumentType::Func(val) => {
                     todo!()
@@ -58,8 +58,8 @@ impl Func {
                 }
             }
         }
-        let flow_statement: Option<FlowStatement>;
-        flow_statement = self.scope.execute(program, true)?;
+
+        let flow_statement: Option<FlowStatement> = self.scope.execute(program, true)?;
         let rt_val = match flow_statement {
             Some(FlowStatement::Break) => Err(anyhow!(ScopeError::BreakOutsideLoop))?,
             Some(FlowStatement::Continue) => Err(anyhow!(ScopeError::ContinueOutsideLoop))?,
@@ -67,7 +67,7 @@ impl Func {
             None => Primitive::VOID,
         };
         let ref_val = argument_input
-            .into_iter()
+            .iter()
             .map(|v| match v {
                 ArgumentType::Ref(val) => program.environment.borrow().get_var(*val).ok(),
                 _ => None,
